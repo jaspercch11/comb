@@ -6,6 +6,7 @@
   let latestPending = [];
 
   let currentDeptFilter = '';
+  let deptChoices = [];
 
   async function fetchRegs(){
     const res=await fetch(`${API}/api/regulations`);
@@ -62,8 +63,7 @@
 
   async function populateDeptFilter(){
     const btn = document.getElementById('deptFilterBtn');
-    const sel = document.getElementById('deptFilter');
-    if(!btn || !sel) return;
+    if(!btn) return;
     try{
       const [audits, incidents, documents, regs, risks] = await Promise.all([
         fetch('http://localhost:3000/audits').then(r=>r.ok?r.json():[]).catch(()=>[]),
@@ -79,17 +79,43 @@
       documents.forEach(d=>{ const v=norm(d.owner_dept); if(v) set.add(v); });
       regs.forEach(r=>{ const v=norm(r.department); if(v) set.add(v); });
       risks.forEach(r=>{ const v=norm(r.dept); if(v) set.add(v); });
-      const options = ['<option value="">All Departments</option>']
-        .concat(Array.from(set).sort().map(v=>`<option value="${v}">${v}</option>`));
-      sel.innerHTML = options.join('');
-      btn.addEventListener('click', ()=>{
-        sel.style.display = (sel.style.display==='none' || !sel.style.display) ? 'inline-block' : 'none';
-      });
-      sel.addEventListener('change', ()=>{
-        currentDeptFilter = sel.value || '';
-        renderChart();
-      });
+      deptChoices = [''].concat(Array.from(set).sort());
+      btn.addEventListener('click', openDeptFilterModal);
     }catch(_){ /* no-op */ }
+  }
+
+  function openDeptFilterModal(){
+    const overlay=document.createElement('div');
+    overlay.className='modal-overlay';
+    const modal=document.createElement('div');
+    modal.className='modal';
+    const options = deptChoices.map(v=>`<option value="${v}">${v||'All Departments'}</option>`).join('');
+    modal.innerHTML = `
+      <div class="modal-header"><h3>Select Department</h3><button class="modal-close">&times;</button></div>
+      <div class="modal-body">
+        <label style="display:block; font-weight:600; margin-bottom:6px;">Department</label>
+        <select id="deptSelectModal" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+          ${options}
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="deptClearBtn">Clear</button>
+        <button class="btn btn-primary" id="deptApplyBtn">Apply</button>
+      </div>
+    `;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    overlay.style.display='flex';
+
+    const close=()=>{ try { document.body.removeChild(overlay); } catch(e){} };
+    modal.querySelector('.modal-close').onclick=close;
+    overlay.addEventListener('click', (e)=>{ if(e.target===overlay) close(); });
+    document.addEventListener('keydown', function onKey(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', onKey); } });
+
+    const selectEl = modal.querySelector('#deptSelectModal');
+    selectEl.value = currentDeptFilter || '';
+    modal.querySelector('#deptClearBtn').onclick = ()=>{ currentDeptFilter=''; renderChart(); close(); };
+    modal.querySelector('#deptApplyBtn').onclick = ()=>{ currentDeptFilter = selectEl.value || ''; renderChart(); close(); };
   }
 
   async function renderChart(){

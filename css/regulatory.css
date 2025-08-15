@@ -175,6 +175,7 @@ header {
 
         .content h2 {
             margin-bottom: 10px;
+            margin-top: 0;
         }
 
         .right ul li {
@@ -392,8 +393,8 @@ header {
 }
 
 .modal {
-  width: 520px;
-  max-width: 100%;
+  width: 900px;
+  max-width: 95vw;
   background: #ffffff;
   border-radius: 12px;
   padding: 20px;
@@ -538,5 +539,6 @@ header {
 .chart-scroll { min-height: 0; overflow: auto; }
 
 /* Align header spacing between panels */
+
 
 .pending-header { margin-bottom: 10px; }

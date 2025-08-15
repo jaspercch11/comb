@@ -74,8 +74,39 @@
         </div>
         <span class="menu-icon">⋮</span>
       `;
+      li.addEventListener('click', ()=> openPendingModal(p));
       pendingList.appendChild(li);
     });
+  }
+
+  function openPendingModal(item){
+    const overlay=document.createElement('div');
+    overlay.className='modal-overlay';
+    const modal=document.createElement('div');
+    modal.className='modal';
+    const typeLabel=String(item.type||'').toUpperCase();
+    const title=String(item.title||'—');
+    const due=item.dueDate ? new Date(item.dueDate).toLocaleDateString() : '—';
+    const statusRow = (typeof item.status !== 'undefined') ? `<p><strong>Status:</strong> ${item.status || '—'}</p>` : '';
+    const progressRow = (typeof item.progress !== 'undefined') ? `<p><strong>Progress:</strong> ${item.progress}%</p>` : '';
+    modal.innerHTML=`
+      <div class="modal-header"><h3>${typeLabel} Details</h3><button class="modal-close">&times;</button></div>
+      <div class="modal-body">
+        <p><strong>Title:</strong> ${title}</p>
+        <p><strong>Due:</strong> ${due}</p>
+        ${statusRow}
+        ${progressRow}
+      </div>
+      <div class="modal-actions"><button class="btn btn-primary">Close</button></div>
+    `;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    overlay.style.display='flex';
+    const close=()=>{ try { document.body.removeChild(overlay); } catch(e){} };
+    modal.querySelector('.modal-close').onclick=close;
+    modal.querySelector('.btn').onclick=close;
+    overlay.addEventListener('click', (e)=>{ if(e.target===overlay) close(); });
+    document.addEventListener('keydown', function onKey(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', onKey); } });
   }
 
   function badgePopups(){

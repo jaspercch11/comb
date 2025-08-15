@@ -1,0 +1,31 @@
+JASPER		CLR		trevor		baboon
+-hunter		-hunter		-		-		-		-		-		-		-		-
+-ace		-ace		-		-		-		-		-		-		-		-
+-landon		-katelyn	-		-		-		-		-		-		-		-
+-cassie		-brook		-		-		-		-		-		-		-		-		
+
+usjasper1	usjasper2	usjasper3	usjasper4	usjasper5	usjasper6	usjasper7-	nelson		cici		usjasper10
+-landon		-landon		-landon		-hunter		-hunter		-normaq		-brook		-loco		-loco		-loco
+-anna		-anna		-anna		-kately		-kately		-ghost		-mireya		-ddes		-des		-tiffy	
+-annam		-annam		-annam		-finalf		-seith		-tina		-saul		-exal		-exal		-teresa
+-amy		-amy		-kelvyn		-kaira		-finalf		-brayden	-la		-tracylyn	-teresa		-tracylyn
+
+jas1		jas2		jas3		jas4		jas5		dyroth		dave		belle		nana		joy
+-donna		-donna		-donna		-		-ramon		-donna		-genive		-irma		-tiffy		-nana
+-donna		-donna		-donna		-		-irma		-donna		-ken		-david		-jessica	-peggy
+-bob		-robert		-robert		-		-david		-maryan		-ken		-jessic		-loco		-judy
+-robert		-bob		-bob		-		-sam		-ramon		-sam		-sam		-sam		-dad
+
+cyclopes	lucas		
+-nana		-peggy		-		-		-		-		-		-		-		-
+-judy		-judy		-		-		-		-		-		-		-		-
+-peggy		-nana		-		-		-		-		-		-		-		-
+-dad		-dad		-		-		-		-		-		-		-		-
+
+tin7		tin8		tin9		tin10		tin12		tin13		tin14		tin15
+-angela		-angela		-angela		-angela		-tina		-garry		-beckie		-beckie	
+-cassie		-katelyn	-cassie		-norma		-brayden	-beckie		-garry		-garry
+-lori		-lori		-lori		-seith		-finalf		-mike		-mike		-mike
+-la		-ace		-kelvyn		-finalf		-seith		-mireya		-saul		-saul	
+
+

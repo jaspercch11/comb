@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Incident Tracking</title>
+  <link rel="stylesheet" href="css/incident.css">
+
+
+
+</head>
+<body>
+
+  <div class="sidebar">
+    <div>
+      <div class="logo">
+        <img src="img/LOGO.png" alt="Logo" />
+        <strong>SkinBloom</strong>
+      </div>
+      <nav>
+        <ul>
+          <li><span>🏠</span> <a href="regulatory.html">Dashboard</a></li>
+          <li><span>🔍</span> <a href="audit.html">Audits</a></li>
+          <li><span>⚠️</span> <a href="findings.html">Findings</a></li>
+          <li><span>📁</span> <a href="documents.html">Documents</a></li>
+          <li class="active"><span>🚩</span> <a href="incident.html">Incidents</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="user">
+      <span>👤</span>
+      <div>
+        <strong>Jasper John Dreo</strong>
+        <small>Compliance</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <header>
+      <div>Incident Tracking</div>
+      <svg class="bell-icon" viewBox="0 0 24 24">
+        <path d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 0 0 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4a1.5 1.5 0 1 0-3 0v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+      </svg>
+    </header>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-content">
+          <span>Open Incidents</span>
+          <h3 id="cardOpen">0</h3>
+        </div>
+        <div class="card-icon-box blue">
+          <img src="https://img.icons8.com/color/48/000000/error--v1.png" />
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-content">
+          <span>Critical Priority</span>
+          <h3 id="cardCritical">0</h3>
+        </div>
+        <div class="card-icon-box red">
+          <img src="https://img.icons8.com/color/48/000000/high-priority.png" />
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-content">
+          <span>In Progress</span>
+          <h3 id="cardInProgress">0</h3>
+        </div>
+        <div class="card-icon-box yellow">
+          <img src="https://img.icons8.com/color/48/000000/time-machine.png" />
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-content">
+          <span>Resolved</span>
+          <h3 id="cardResolved">0</h3>
+        </div>
+        <div class="card-icon-box green">
+          <img src="https://img.icons8.com/color/48/000000/checkmark--v1.png" />
+        </div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <div class="section-header">
+        <h2>Recent Incident Reports</h2>
+        <div class="buttons">
+          <button class="btn btn-filter">🔍 Filter</button>
+          <button class="btn btn-reports">📊 Reports</button>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Incident Type</th>
+            <th>Reported Date</th>
+            <th>Status</th>
+            <th>Severity</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="incident-table-body">
+          <!-- Rows will be loaded by JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Filter Modal -->
+  <div id="filterModal" class="modal" style="display: none;">
+    <div class="modal-content styled-form">
+      <div class="modal-header">
+        <h3>🔍 Filter Incidents</h3>
+        <button class="close-btn" type="button" onclick="closeFilterModal()">✕</button>
+      </div>
+      <form id="filterForm">
+        <label>
+          <span>Status</span>
+          <select name="status">
+            <option value="">Any</option>
+            <option value="Open">Open</option>
+            <option value="Investigating">Investigating</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+        </label>
+        <label>
+          <span>Severity</span>
+          <select name="severity">
+            <option value="">Any</option>
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+            <option value="Critical">Critical</option>
+          </select>
+        </label>
+        <div class="modal-buttons">
+          <button type="button" class="cancel-btn" onclick="resetIncidentFilters()">Reset</button>
+          <button type="submit" class="upload-btn">Apply Filters</button>
+        </div>
+      </form>
+    </div>
+    </div>
+ 
+   <!-- View Incident Modal -->
+   <div id="viewIncidentModal" class="modal" style="display: none;">
+     <div class="modal-content styled-form">
+       <div class="modal-header">
+         <h3>📄 Incident Details</h3>
+         <button class="close-btn" type="button" onclick="closeViewModal()">✕</button>
+       </div>
+       <p><strong>Incident Type:</strong> <span id="viewIncidentType"></span></p>
+       <p><strong>Date Reported:</strong> <span id="viewDateReported"></span></p>
+       <p><strong>Status:</strong> <span id="viewStatus"></span></p>
+       <p><strong>Severity:</strong> <span id="viewSeverity"></span></p>
+       <p><strong>Department:</strong> <span id="viewDepartment"></span></p>
+       <p><strong>Description:</strong> <span id="viewDescription"></span></p>
+       <p><strong>Evidence:</strong> <span id="viewEvidence"></span></p>
+     </div>
+   </div>
+ 
+   <!-- Edit Status Modal -->
+   <div id="editStatusModal" class="modal" style="display: none;">
+     <div class="modal-content styled-form">
+       <div class="modal-header">
+         <h3>✏️ Update Incident Status</h3>
+         <button class="close-btn" type="button" onclick="closeEditModal()">✕</button>
+       </div>
+       <form id="editStatusForm">
+         <label>
+           <span>Status</span>
+           <select name="status">
+             <option value="Open">Open</option>
+             <option value="Investigating">Investigating</option>
+             <option value="In Progress">In Progress</option>
+             <option value="Resolved">Resolved</option>
+           </select>
+         </label>
+         <div class="modal-buttons">
+           <button type="button" class="cancel-btn" onclick="closeEditModal()">Cancel</button>
+           <button type="submit" class="upload-btn">Save</button>
+         </div>
+       </form>
+     </div>
+   </div>
+ 
+   <script>
+    let allIncidents = [];
+    let incidentFilters = { status: '', severity: '' };
+
+    async function loadIncidents() {
+      try {
+        const res = await fetch("/api/incidents");
+        const data = await res.json();
+        allIncidents = data;
+        renderIncidents();
+      } catch (err) {
+        console.error("Error loading incidents:", err);
+      }
+    }
+
+    function applyIncidentFilters(rows) {
+      return rows.filter(r => {
+        const rStatus = (r.status || '').toLowerCase();
+        const rSeverity = (r.severity_level || '').toLowerCase();
+        const fStatus = (incidentFilters.status || '').toLowerCase();
+        const fSeverity = (incidentFilters.severity || '').toLowerCase();
+        const statusOk = !fStatus || rStatus === fStatus;
+        const severityOk = !fSeverity || rSeverity === fSeverity;
+        return statusOk && severityOk;
+      });
+    }
+
+    function renderIncidents() {
+      const tbody = document.getElementById("incident-table-body");
+      tbody.innerHTML = "";
+      const filtered = applyIncidentFilters(allIncidents);
+      updateCards(filtered);
+      const rowsHtml = filtered.map(row => `
+        <tr data-incident-id="${row.incident_id}">
+          <td>${row.incident_type || '—'}</td>
+          <td>${row.date_reported || '—'}</td>
+          <td><span class="status-${(row.status || '').toLowerCase().replace(/\s+/g, '-')}">${row.status || '—'}</span></td>
+          <td>${row.severity_level || '—'}</td>
+          <td>
+            <button class="action-btn view-btn">View</button>
+            <button class="action-btn edit-btn" data-action="edit-status">Edit</button>
+          </td>
+        </tr>
+      `).join('');
+      tbody.innerHTML = rowsHtml;
+    }
+
+    function updateCards(rows) {
+      // Normalize helper
+      const norm = (v) => (v || '').toLowerCase();
+      const counts = {
+        open: 0,
+        critical: 0,
+        inProgress: 0,
+        resolved: 0,
+      };
+
+      rows.forEach(r => {
+        const status = norm(r.status);
+        const severity = norm(r.severity_level);
+        if (status === 'open') counts.open += 1;
+        if (severity === 'critical') counts.critical += 1;
+        if (status === 'in progress' || status === 'investigating' || status === 'progress') counts.inProgress += 1;
+        if (status === 'resolved') counts.resolved += 1;
+      });
+
+      const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = String(value);
+      };
+      setText('cardOpen', counts.open);
+      setText('cardCritical', counts.critical);
+      setText('cardInProgress', counts.inProgress);
+      setText('cardResolved', counts.resolved);
+    }
+
+    function openFilterModal() {
+      const form = document.getElementById('filterForm');
+      form.status.value = incidentFilters.status;
+      form.severity.value = incidentFilters.severity;
+      document.getElementById('filterModal').style.display = 'flex';
+    }
+
+    function closeFilterModal() {
+      document.getElementById('filterModal').style.display = 'none';
+    }
+
+    function resetIncidentFilters() {
+      incidentFilters = { status: '', severity: '' };
+      const form = document.getElementById('filterForm');
+      form.reset();
+      renderIncidents();
+      closeFilterModal();
+    }
+
+    // Edit Status modal logic
+    let editingIncidentId = null;
+
+    function openEditModal(incidentId, currentStatus) {
+      editingIncidentId = incidentId;
+      const form = document.getElementById('editStatusForm');
+      form.status.value = currentStatus || 'Open';
+      document.getElementById('editStatusModal').style.display = 'flex';
+    }
+
+    function closeEditModal() {
+      document.getElementById('editStatusModal').style.display = 'none';
+      editingIncidentId = null;
+    }
+
+    function closeViewModal() {
+      document.getElementById('viewIncidentModal').style.display = 'none';
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadIncidents();
+
+      document.querySelector('.btn-filter').addEventListener('click', () => {
+        openFilterModal();
+      });
+
+      const filterModal = document.getElementById('filterModal');
+      filterModal.addEventListener('click', (e) => {
+        if (e.target === filterModal) closeFilterModal();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          if (filterModal.style.display === 'flex') closeFilterModal();
+          if (document.getElementById('editStatusModal').style.display === 'flex') closeEditModal();
+          if (document.getElementById('viewIncidentModal').style.display === 'flex') closeViewModal();
+        }
+      });
+
+      document.getElementById('filterForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const form = e.target;
+        incidentFilters.status = form.status.value;
+        incidentFilters.severity = form.severity.value;
+        renderIncidents();
+        closeFilterModal();
+      });
+
+      // Delegate clicks for Edit buttons
+      document.getElementById('incident-table-body').addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-action="edit-status"]');
+        if (!btn) return;
+        const tr = btn.closest('tr');
+        const id = tr && tr.getAttribute('data-incident-id');
+        const currentStatus = tr ? tr.querySelector('td:nth-child(3) span')?.textContent : 'Open';
+        if (id) openEditModal(id, currentStatus);
+      });
+
+      // Submit edit status form
+      document.getElementById('editStatusForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!editingIncidentId) return;
+        const form = e.target;
+        const newStatus = form.status.value;
+        try {
+          const res = await fetch(`/api/incidents/${editingIncidentId}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+          });
+          if (!res.ok) throw new Error('Failed to update');
+          // Refresh data and re-render
+          await loadIncidents();
+          renderIncidents();
+          closeEditModal();
+        } catch (err) {
+          console.error('Failed to update status:', err);
+          alert('Failed to update status');
+        }
+      });
+
+      // View button behavior
+      document.getElementById('incident-table-body').addEventListener('click', (e) => {
+        const viewBtn = e.target.closest('button.view-btn');
+        if (!viewBtn) return;
+        const tr = viewBtn.closest('tr');
+        const id = tr && tr.getAttribute('data-incident-id');
+        if (!id) return;
+        const incident = allIncidents.find(x => String(x.incident_id) === String(id));
+        if (!incident) return;
+        document.getElementById('viewIncidentType').textContent = incident.incident_type || '—';
+        document.getElementById('viewDateReported').textContent = incident.date_reported || '—';
+        document.getElementById('viewStatus').textContent = incident.status || '—';
+        document.getElementById('viewSeverity').textContent = incident.severity_level || '—';
+        document.getElementById('viewDepartment').textContent = incident.department || '—';
+        document.getElementById('viewDescription').textContent = incident.description || '—';
+        const evSpan = document.getElementById('viewEvidence');
+        if (incident.evidence) {
+          evSpan.innerHTML = `<a href="/api/incidents/${incident.incident_id}/evidence">Download</a>`;
+        } else {
+          evSpan.textContent = '—';
+        }
+        document.getElementById('viewIncidentModal').style.display = 'flex';
+      });
+
+      const viewModal = document.getElementById('viewIncidentModal');
+      viewModal.addEventListener('click', (e) => {
+        if (e.target === viewModal) closeViewModal();
+      });
+    });
+  </script>
+
+</body>
+</html>
+

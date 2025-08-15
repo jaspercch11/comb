@@ -493,7 +493,7 @@ header {
   -webkit-overflow-scrolling: touch;
 }
 .chart-inner {
-  min-width: 900px;
+  min-width: 100%;
 }
 
 /* Shorter chart height override */

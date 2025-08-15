@@ -67,6 +67,14 @@
     if (window._regComplianceChart) {
       window._regComplianceChart.destroy();
     }
+    // Set dynamic inner width so each category gets a fixed pixel width
+    const perCategoryWidth = 120; // px/bar label area
+    const inner = document.querySelector('.chart-inner');
+    if (inner) {
+      const dynamicWidth = Math.max(inner.parentElement.clientWidth, departments.length * perCategoryWidth);
+      inner.style.width = dynamicWidth + 'px';
+    }
+
     window._regComplianceChart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -225,4 +233,18 @@
       }catch(err){ /* no-op */ }
     });
   }
+
+  // Recompute chart inner width on resize
+  window.addEventListener('resize', ()=>{
+    const inner = document.querySelector('.chart-inner');
+    if (!inner) return;
+    const labels = [
+      'Human Resources','Project Management','Sales & CRM','Manufacturing & Production Mgmt.',
+      'Inventory & Warehouse Mgmt.','Procurement','Finance and Accounting',
+      'B.I. and Analytics','Compliance & Risk Mangement'
+    ];
+    const perCategoryWidth = 120;
+    const dynamicWidth = Math.max(inner.parentElement.clientWidth, labels.length * perCategoryWidth);
+    inner.style.width = dynamicWidth + 'px';
+  });
 })();

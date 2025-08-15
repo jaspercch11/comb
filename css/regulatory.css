@@ -486,3 +486,23 @@ header {
     height: 220px !important;
   }
 }
+
+/* Horizontal scrolling container for the chart */
+.chart-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.chart-inner {
+  min-width: 1200px;
+}
+
+/* Shorter chart height override */
+#complianceChart {
+  height: 180px !important;
+}
+
+/* Shorter pending list */
+.task-list {
+  max-height: 220px;
+  overflow-y: auto;
+}

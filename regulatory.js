@@ -78,6 +78,7 @@
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
         plugins: { legend: { position: 'top' } }
       }
@@ -87,7 +88,7 @@
   function renderPending(rows){
     latestPending = Array.isArray(rows) ? rows.slice() : [];
     pendingList.innerHTML='';
-    rows.slice(0,6).forEach(p=>{
+    rows.slice(0,4).forEach(p=>{
       const li=document.createElement('li');
       li.className='task-item blue';
       li.innerHTML = `

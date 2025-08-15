@@ -478,7 +478,7 @@ header {
 #complianceChart {
   display: block;
   width: 100% !important;
-  height: 280px !important;
+  height: 200px !important;
 }
 
 @media (max-width: 768px) {
@@ -493,13 +493,11 @@ header {
   -webkit-overflow-scrolling: touch;
 }
 .chart-inner {
-  min-width: 1200px;
+  min-width: 900px;
 }
 
 /* Shorter chart height override */
-#complianceChart {
-  height: 180px !important;
-}
+/* removed duplicate height to avoid conflicts */
 
 /* Shorter pending list */
 .task-list {

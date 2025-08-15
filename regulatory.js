@@ -48,18 +48,39 @@
   }
 
   async function renderChart(){
-    const cs = await fetchIncStatus();
+    const regs = await fetchRegs();
+    const departments = [
+      'Human Resources',
+      'Project Management',
+      'Sales & CRM',
+      'Manufacturing & Production Mgmt.',
+      'Inventory & Warehouse Mgmt.',
+      'Procurement',
+      'Finance and Accounting',
+      'B.I. and Analytics',
+      'Compliance & Risk Mangement'
+    ];
+    const toLower = (v) => String(v || '').toLowerCase();
+    const compliantData = departments.map(d => regs.filter(r => r.department === d && toLower(r.status) === 'compliant').length);
+    const nonCompliantData = departments.map(d => regs.filter(r => r.department === d && toLower(r.status) === 'non-compliant').length);
     const ctx = document.getElementById('complianceChart').getContext('2d');
-    new Chart(ctx, {
+    if (window._regComplianceChart) {
+      window._regComplianceChart.destroy();
+    }
+    window._regComplianceChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['Incidents'],
+        labels: departments,
         datasets: [
-          { label: 'Compliant', data: [cs.compliant], backgroundColor: '#4caf50' },
-          { label: 'Non-Compliant', data: [cs.non_compliant], backgroundColor: '#f44336' }
+          { label: 'Compliant', data: compliantData, backgroundColor: '#4caf50' },
+          { label: 'Non-Compliant', data: nonCompliantData, backgroundColor: '#f44336' }
         ]
       },
-      options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      options: {
+        responsive: true,
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+        plugins: { legend: { position: 'top' } }
+      }
     });
   }
 

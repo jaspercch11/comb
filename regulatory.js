@@ -101,7 +101,7 @@ if (inner) {
   function renderPending(rows){
     latestPending = Array.isArray(rows) ? rows.slice() : [];
     pendingList.innerHTML='';
-    rows.slice(0,4).forEach(p=>{
+    rows.slice(0,3).forEach(p=>{
       const li=document.createElement('li');
       li.className='task-item blue';
       li.innerHTML = `
@@ -153,7 +153,7 @@ if (inner) {
     const modal=document.createElement('div');
     modal.className='modal';
     const rows = Array.isArray(items) ? items : [];
-    const tableRows = rows.map(it=>{
+    const tableRows = rows.slice(0,3).map(it=>{
       const type = String(it.type||'').toUpperCase();
       const title = String(it.title||'—');
       const due = it.dueDate ? new Date(it.dueDate).toLocaleDateString() : '—';

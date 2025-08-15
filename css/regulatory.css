@@ -158,7 +158,8 @@ header {
 
         /* New row container for left and right side-by-side */
         .content .row {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 20px;
             margin-bottom: 20px;
         }
@@ -478,7 +479,7 @@ header {
 #complianceChart {
   display: block;
   width: 100% !important;
-  height: 200px !important;
+  height: 220px !important;
 }
 
 @media (max-width: 768px) {
@@ -501,6 +502,6 @@ header {
 
 /* Shorter pending list */
 .task-list {
-  max-height: 220px;
+  max-height: 240px;
   overflow-y: auto;
 }

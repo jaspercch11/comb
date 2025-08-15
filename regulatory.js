@@ -59,34 +59,58 @@
   }
 
   async function renderChart(){
-    const regs = await fetchRegs();
-    // Build department list dynamically from data to avoid mismatches
-    const deptSet = new Set(regs.map(r => r.department).filter(Boolean));
-    const departments = Array.from(deptSet);
-    const toLower = (v) => String(v || '').toLowerCase();
-    const compliantData = departments.map(d => regs.filter(r => r.department === d && toLower(r.status) === 'compliant').length);
-    const nonCompliantData = departments.map(d => regs.filter(r => r.department === d && toLower(r.status) === 'non-compliant').length);
+    const labels = ['Audits','Incidents','Documents','Regulations','Risks'];
+    async function fetchArray(url){
+      try{
+        const res = await fetch(url);
+        if(!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      }catch(_){
+        return [];
+      }
+    }
+
+    const [audits, incidents, documents, regulations, risks] = await Promise.all([
+      fetchArray(`${API}/audits`),
+      fetchArray(`${API}/api/incidents`),
+      fetchArray(`${API}/documents`),
+      fetchArray(`${API}/api/regulations`),
+      fetchArray(`${API}/api/risks`)
+    ]);
+
+    const counts = [
+      audits.length,
+      incidents.length,
+      documents.length,
+      regulations.length,
+      risks.length
+    ];
+
     const ctx = document.getElementById('complianceChart').getContext('2d');
     if (window._regComplianceChart) {
       window._regComplianceChart.destroy();
     }
-    // Set dynamic inner width so each category gets a fixed pixel width
+
     const perCategoryWidth = 110; // px/bar label area
     const inner = document.querySelector('.chart-inner');
-if (inner) {
-  const container = inner.parentElement;
-  const containerWidth = container ? container.clientWidth : 0;
-  const dynamicWidth = Math.max(containerWidth, departments.length * perCategoryWidth);
-  inner.style.width = dynamicWidth + 'px';
-}
+    if (inner) {
+      const container = inner.parentElement;
+      const containerWidth = container ? container.clientWidth : 0;
+      const dynamicWidth = Math.max(containerWidth, labels.length * perCategoryWidth);
+      inner.style.width = dynamicWidth + 'px';
+    }
 
     window._regComplianceChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: departments,
+        labels,
         datasets: [
-          { label: 'Compliant', data: compliantData, backgroundColor: '#4caf50' },
-          { label: 'Non-Compliant', data: nonCompliantData, backgroundColor: '#f44336' }
+          {
+            label: 'System Records',
+            data: counts,
+            backgroundColor: ['#42a5f5','#66bb6a','#ffa726','#ab47bc','#ef5350']
+          }
         ]
       },
       options: {

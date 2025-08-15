@@ -68,7 +68,7 @@
       window._regComplianceChart.destroy();
     }
     // Set dynamic inner width so each category gets a fixed pixel width
-    const perCategoryWidth = 100; // px/bar label area
+    const perCategoryWidth = 110; // px/bar label area
     const inner = document.querySelector('.chart-inner');
     if (inner) {
       const dynamicWidth = Math.max(inner.parentElement.clientWidth, departments.length * perCategoryWidth);

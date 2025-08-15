@@ -8,7 +8,18 @@
   async function fetchRegs(){
     const res=await fetch(`${API}/api/regulations`);
     if(!res.ok) return [];
-    return await res.json();
+    const rows = await res.json();
+    const nowMs = Date.now();
+    const normalize = (r)=>{
+      const nextReview = r.next_review_date || r.next_review || null;
+      const lastReview = r.last_review || r.last_accessed_date || null;
+      const dept = r.department || r.dept_responsible || r.dept || '';
+      const name = r.name || r.regulation_name || r.title || '—';
+      const daysUntil = nextReview ? Math.floor((new Date(nextReview).getTime() - nowMs) / (1000*60*60*24)) : null;
+      const status = daysUntil !== null && daysUntil < 0 ? 'non-compliant' : 'compliant';
+      return { name, department: dept, status, last_review: lastReview, next_review: nextReview };
+    };
+    return Array.isArray(rows) ? rows.map(normalize) : [];
   }
   async function fetchIncStatus(){
     const res=await fetch(`${API}/api/dashboard/compliance-status`);
@@ -49,17 +60,9 @@
 
   async function renderChart(){
     const regs = await fetchRegs();
-    const departments = [
-      'Human Resources',
-      'Project Management',
-      'Sales & CRM',
-      'Manufacturing & Production Mgmt.',
-      'Inventory & Warehouse Mgmt.',
-      'Procurement',
-      'Finance and Accounting',
-      'B.I. and Analytics',
-      'Compliance & Risk Mangement'
-    ];
+    // Build department list dynamically from data to avoid mismatches
+    const deptSet = new Set(regs.map(r => r.department).filter(Boolean));
+    const departments = Array.from(deptSet);
     const toLower = (v) => String(v || '').toLowerCase();
     const compliantData = departments.map(d => regs.filter(r => r.department === d && toLower(r.status) === 'compliant').length);
     const nonCompliantData = departments.map(d => regs.filter(r => r.department === d && toLower(r.status) === 'non-compliant').length);
@@ -240,11 +243,7 @@ if (inner) {
   window.addEventListener('resize', ()=>{
     const inner = document.querySelector('.chart-inner');
     if (!inner) return;
-    const labels = [
-      'Human Resources','Project Management','Sales & CRM','Manufacturing & Production Mgmt.',
-      'Inventory & Warehouse Mgmt.','Procurement','Finance and Accounting',
-      'B.I. and Analytics','Compliance & Risk Mangement'
-    ];
+    const labels = (window._regComplianceChart && window._regComplianceChart.data && window._regComplianceChart.data.labels) || [];
     const container = inner.parentElement;
     const containerWidth = container ? container.clientWidth : 0;
     const perCategoryWidth = 110;

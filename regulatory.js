@@ -5,6 +5,8 @@
   const viewAllLink=document.querySelector('.view-all');
   let latestPending = [];
 
+  let currentDeptFilter = '';
+
   async function fetchRegs(){
     const res=await fetch(`${API}/api/regulations`);
     if(!res.ok) return [];
@@ -58,6 +60,38 @@
     document.getElementById('reviewSoon').textContent = soon;
   }
 
+  async function populateDeptFilter(){
+    const btn = document.getElementById('deptFilterBtn');
+    const sel = document.getElementById('deptFilter');
+    if(!btn || !sel) return;
+    try{
+      const [audits, incidents, documents, regs, risks] = await Promise.all([
+        fetch('http://localhost:3000/audits').then(r=>r.ok?r.json():[]).catch(()=>[]),
+        fetch('http://localhost:3000/api/incidents').then(r=>r.ok?r.json():[]).catch(()=>[]),
+        fetch('http://localhost:3000/documents').then(r=>r.ok?r.json():[]).catch(()=>[]),
+        fetchRegs(),
+        fetch('http://localhost:3000/api/risks').then(r=>r.ok?r.json():[]).catch(()=>[])
+      ]);
+      const norm = (s)=> String(s||'').trim();
+      const set = new Set();
+      audits.forEach(a=>{ const v=norm(a.dept_audited); if(v) set.add(v); });
+      incidents.forEach(i=>{ const v=norm(i.department); if(v) set.add(v); });
+      documents.forEach(d=>{ const v=norm(d.owner_dept); if(v) set.add(v); });
+      regs.forEach(r=>{ const v=norm(r.department); if(v) set.add(v); });
+      risks.forEach(r=>{ const v=norm(r.dept); if(v) set.add(v); });
+      const options = ['<option value="">All Departments</option>']
+        .concat(Array.from(set).sort().map(v=>`<option value="${v}">${v}</option>`));
+      sel.innerHTML = options.join('');
+      btn.addEventListener('click', ()=>{
+        sel.style.display = (sel.style.display==='none' || !sel.style.display) ? 'inline-block' : 'none';
+      });
+      sel.addEventListener('change', ()=>{
+        currentDeptFilter = sel.value || '';
+        renderChart();
+      });
+    }catch(_){ /* no-op */ }
+  }
+
   async function renderChart(){
     const labels = ['Audits','Incidents','Documents','Regulations','Risks'];
     async function fetchArray(url){
@@ -71,20 +105,23 @@
       }
     }
 
-    const [audits, incidents, documents, regulations, risks] = await Promise.all([
+    const [audits, incidents, documents, regs, risks] = await Promise.all([
       fetchArray(`${API}/audits`),
       fetchArray(`${API}/api/incidents`),
       fetchArray(`${API}/documents`),
-      fetchArray(`${API}/api/regulations`),
+      fetchRegs(),
       fetchArray(`${API}/api/risks`)
     ]);
 
+    const norm = (s)=> String(s||'').toLowerCase().trim();
+    const filterByDept = (arr, getter)=> currentDeptFilter ? arr.filter(x=> norm(getter(x)) === norm(currentDeptFilter)) : arr;
+
     const counts = [
-      audits.length,
-      incidents.length,
-      documents.length,
-      regulations.length,
-      risks.length
+      filterByDept(audits, a=>a.dept_audited).length,
+      filterByDept(incidents, i=>i.department).length,
+      filterByDept(documents, d=>d.owner_dept).length,
+      filterByDept(regs, r=>r.department).length,
+      filterByDept(risks, r=>r.dept).length
     ];
 
     const ctx = document.getElementById('complianceChart').getContext('2d');
@@ -107,7 +144,7 @@
         labels,
         datasets: [
           {
-            label: 'System Records',
+            label: currentDeptFilter ? `Records (${currentDeptFilter})` : 'System Records',
             data: counts,
             backgroundColor: ['#42a5f5','#66bb6a','#ffa726','#ab47bc','#ef5350']
           }
@@ -244,6 +281,7 @@
     renderTopCards(regs);
     renderPending(await fetchPending());
     badgePopups();
+    await populateDeptFilter();
   }
 
   load();

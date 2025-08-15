@@ -484,7 +484,7 @@ header {
 
 @media (max-width: 768px) {
   #complianceChart {
-    height: 220px !important;
+    height: 100% !important;
   }
 }
 
@@ -524,5 +524,12 @@ header {
   flex: 0 0 auto;
 }
 /* Make inner content scroll within fixed panels */
-.chart-scroll { flex: 1 1 auto; overflow-x: auto; }
+.chart-scroll { flex: 1 1 auto; overflow-x: auto; overflow-y: hidden; }
 .task-list { flex: 1 1 auto; overflow-y: auto; max-height: none; }
+
+/* Ensure chart fills the fixed-height panel */
+.chart-inner { height: 100%; }
+.chart-scroll { min-height: 0; }
+
+/* Align header spacing between panels */
+.pending-header { margin-bottom: 10px; }

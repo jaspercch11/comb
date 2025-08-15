@@ -459,3 +459,17 @@ header {
 
 .btn-primary { background: linear-gradient(135deg, #c471f5, #6a93ff); color: #fff; }
 .btn-primary:hover { filter: brightness(0.97); }
+
+.pending-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.pending-table thead th {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.pending-table tbody td {
+  padding: 8px 10px;
+  border-top: 1px solid #f1f5f9;
+}

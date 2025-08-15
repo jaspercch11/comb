@@ -2,6 +2,8 @@
   const API='http://localhost:3000';
   const regsBody=document.getElementById('regsBody');
   const pendingList=document.getElementById('pendingList');
+  const viewAllLink=document.querySelector('.view-all');
+  let latestPending = [];
 
   async function fetchRegs(){
     const res=await fetch(`${API}/api/regulations`);
@@ -62,6 +64,7 @@
   }
 
   function renderPending(rows){
+    latestPending = Array.isArray(rows) ? rows.slice() : [];
     pendingList.innerHTML='';
     rows.slice(0,6).forEach(p=>{
       const li=document.createElement('li');
@@ -96,6 +99,40 @@
         <p><strong>Due:</strong> ${due}</p>
         ${statusRow}
         ${progressRow}
+      </div>
+      <div class="modal-actions"><button class="btn btn-primary">Close</button></div>
+    `;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    overlay.style.display='flex';
+    const close=()=>{ try { document.body.removeChild(overlay); } catch(e){} };
+    modal.querySelector('.modal-close').onclick=close;
+    modal.querySelector('.btn').onclick=close;
+    overlay.addEventListener('click', (e)=>{ if(e.target===overlay) close(); });
+    document.addEventListener('keydown', function onKey(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', onKey); } });
+  }
+
+  function openAllPendingModal(items){
+    const overlay=document.createElement('div');
+    overlay.className='modal-overlay';
+    const modal=document.createElement('div');
+    modal.className='modal';
+    const rows = Array.isArray(items) ? items : [];
+    const tableRows = rows.map(it=>{
+      const type = String(it.type||'').toUpperCase();
+      const title = String(it.title||'—');
+      const due = it.dueDate ? new Date(it.dueDate).toLocaleDateString() : '—';
+      const status = (typeof it.status !== 'undefined') ? (it.status || '—') : '—';
+      const progress = (typeof it.progress !== 'undefined') ? `${it.progress}%` : '—';
+      return `<tr><td>${type}</td><td>${title}</td><td>${due}</td><td>${status}</td><td>${progress}</td></tr>`;
+    }).join('');
+    modal.innerHTML = `
+      <div class="modal-header"><h3>All Pending Tasks</h3><button class="modal-close">&times;</button></div>
+      <div class="modal-body">
+        <table class="pending-table">
+          <thead><tr><th>Type</th><th>Title</th><th>Due</th><th>Status</th><th>Progress</th></tr></thead>
+          <tbody>${tableRows || '<tr><td colspan="5">No pending tasks</td></tr>'}</tbody>
+        </table>
       </div>
       <div class="modal-actions"><button class="btn btn-primary">Close</button></div>
     `;
@@ -156,4 +193,14 @@
     renderTopCards(await fetchRegs());
     renderPending(await fetchPending());
   }, 5000);
+
+  if(viewAllLink){
+    viewAllLink.addEventListener('click', async (e)=>{
+      e.preventDefault();
+      try{
+        if(!latestPending.length){ latestPending = await fetchPending(); }
+        openAllPendingModal(latestPending);
+      }catch(err){ /* no-op */ }
+    });
+  }
 })();

@@ -473,3 +473,16 @@ header {
   padding: 8px 10px;
   border-top: 1px solid #f1f5f9;
 }
+
+/* Chart sizing */
+#complianceChart {
+  display: block;
+  width: 100% !important;
+  height: 280px !important;
+}
+
+@media (max-width: 768px) {
+  #complianceChart {
+    height: 220px !important;
+  }
+}

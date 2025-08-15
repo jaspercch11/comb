@@ -25,10 +25,10 @@
       const tr=document.createElement('tr');
       tr.innerHTML = `
         <td>${r.name}</td>
-        <td>${r.department}</td>
-        <td>${r.status}</td>
+        <td>${r.dept_responsible || r.department || 'N/A'}</td>
+        <td>${r.status || 'Active'}</td>
         <td>${r.last_review ? new Date(r.last_review).toISOString().slice(0,10) : ''}</td>
-        <td>${r.next_review ? new Date(r.next_review).toISOString().slice(0,10) : ''}</td>
+        <td>${r.next_review_date ? new Date(r.next_review_date).toISOString().slice(0,10) : ''}</td>
       `;
       regsBody.appendChild(tr);
     });
@@ -38,7 +38,7 @@
     const total = rows.length;
     const compliant = rows.filter(r=> String(r.status||'').toLowerCase()==='compliant').length;
     const nonCompliant = rows.filter(r=> String(r.status||'').toLowerCase()==='non-compliant').length;
-    const soon = rows.filter(r=> r.next_review && (new Date(r.next_review)-new Date())/(1000*60*60*24) <= 30).length;
+    const soon = rows.filter(r=> r.next_review_date && (new Date(r.next_review_date)-new Date())/(1000*60*60*24) <= 30).length;
     document.getElementById('totalRegs').textContent = total;
     document.getElementById('compliant').textContent = compliant;
     document.getElementById('nonCompliant').textContent = nonCompliant;
@@ -46,23 +46,69 @@
   }
 
   async function renderChart(){
-    const cs = await fetchIncStatus();
-    const ctx = document.getElementById('complianceChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['Incidents'],
-        datasets: [
-          { label: 'Compliant', data: [cs.compliant], backgroundColor: '#4caf50' },
-          { label: 'Non-Compliant', data: [cs.non_compliant], backgroundColor: '#f44336' }
-        ]
-      },
-      options: { responsive: true, scales: { y: { beginAtZero: true } } }
-    });
+    try {
+      const cs = await fetchIncStatus();
+      const ctx = document.getElementById('complianceChart').getContext('2d');
+      
+      // Destroy existing chart if it exists
+      if (window.complianceChart) {
+        window.complianceChart.destroy();
+      }
+      
+      window.complianceChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Compliance Status'],
+          datasets: [
+            { 
+              label: 'Compliant', 
+              data: [cs.compliant || 0], 
+              backgroundColor: '#4caf50',
+              borderColor: '#4caf50',
+              borderWidth: 1
+            },
+            { 
+              label: 'Non-Compliant', 
+              data: [cs.non_compliant || 0], 
+              backgroundColor: '#f44336',
+              borderColor: '#f44336',
+              borderWidth: 1
+            }
+          ]
+        },
+        options: { 
+          responsive: true, 
+          maintainAspectRatio: false,
+          scales: { 
+            y: { 
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1
+              }
+            } 
+          },
+          plugins: {
+            legend: {
+              position: 'top'
+            }
+          }
+        } 
+      });
+    } catch (error) {
+      console.error('Error rendering chart:', error);
+    }
   }
 
   function renderPending(rows){
     pendingList.innerHTML='';
+    if (rows.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'task-item empty';
+      li.innerHTML = '<p>No pending tasks</p>';
+      pendingList.appendChild(li);
+      return;
+    }
+    
     rows.slice(0,6).forEach(p=>{
       const li=document.createElement('li');
       li.className='task-item blue';
@@ -112,17 +158,25 @@
   }
 
   async function load(){
-    const regs = await fetchRegs();
-    renderRegs(regs);
-    renderTopCards(regs);
-    renderPending(await fetchPending());
-    badgePopups();
+    try {
+      const regs = await fetchRegs();
+      renderRegs(regs);
+      renderTopCards(regs);
+      renderPending(await fetchPending());
+      await renderChart();
+      badgePopups();
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
   }
 
   load();
-  renderChart();
   setInterval(async()=>{
-    renderTopCards(await fetchRegs());
-    renderPending(await fetchPending());
+    try {
+      renderTopCards(await fetchRegs());
+      renderPending(await fetchPending());
+    } catch (error) {
+      console.error('Error updating data:', error);
+    }
   }, 5000);
 })();

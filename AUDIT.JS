@@ -137,7 +137,13 @@ async function loadChart() {
 
     // ==== Create Pie Chart ====
     const ctx = document.getElementById("auditStatusChart").getContext("2d");
-    new Chart(ctx, {
+    
+    // Destroy existing chart if it exists
+    if (window.auditStatusChart) {
+      window.auditStatusChart.destroy();
+    }
+    
+    window.auditStatusChart = new Chart(ctx, {
       type: "pie",
       data: {
         labels,
@@ -148,6 +154,7 @@ async function loadChart() {
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: {
             position: "top"

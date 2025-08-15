@@ -88,13 +88,15 @@
 
 .header {
       background-color: white;
-      padding: 20px;
+      padding: 14px 20px;
       border-radius: 8px;
-      margin-bottom: 20px;
-      font-size: 22px;
-      font-weight: 700;
+      font-size: 20px;
+      font-weight: 600;
       display: flex;
-      justify-content:space-between;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      color: #111;
     }
 
         header h1 {
@@ -367,3 +369,9 @@
             }
 
         }
+
+.bell-icon {
+  width: 24px;
+  height: 24px;
+  fill: #111;
+}

@@ -80,9 +80,10 @@
  	}
 
 	async function render() {
-		const risks = applyFilters(await apiGetRisks());
-		tableBody.innerHTML = '';
-		risks.forEach(risk => {
+		try {
+			const risks = applyFilters(await apiGetRisks());
+			tableBody.innerHTML = '';
+			risks.forEach(risk => {
 			const tr = document.createElement('tr');
 
 			const nameTd = document.createElement('td');
@@ -98,17 +99,19 @@
 
 			const dateTd = document.createElement('td');
 			dateTd.className = 'due-date';
-			const date = new Date(risk.review_date);
-			dateTd.textContent = date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: '2-digit' });
+			const date = risk.review_date ? new Date(risk.review_date) : null;
+			dateTd.textContent = date
+				? date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: '2-digit' })
+				: '—';
 
 			const status = computeStatus(risk.progress || 0);
 			const progressTd = document.createElement('td');
 			progressTd.innerHTML = `
 				<div class="progress-bar">
-					<div class="progress-bar-inner">
-						<div class="progress-fill ${renderFillClass(status)}" style="width:${risk.progress || 0}%"></div>
-					</div>
-					<div class="percent">${risk.progress || 0}%</div>
+				<div class="progress-bar-inner">
+					<div class="progress-fill ${renderFillClass(status)}" style="width:${risk.progress || 0}%"></div>
+				</div>
+				<div class="percent">${risk.progress || 0}%</div>
 				</div>
 			`;
 
@@ -118,12 +121,12 @@
 			const actionTd = document.createElement('td');
 			if ((risk.progress || 0) === 100) {
 				const delBtn = document.createElement('button');
-				delBtn.className = 'btn-edit'; // same style as edit
+				delBtn.className = 'btn-edit';
 				delBtn.textContent = 'Delete';
 				delBtn.addEventListener('click', async () => {
-					if (!confirm('Delete this completed risk?')) return;
-					await apiDeleteRisk(risk.id);
-					await render();
+				if (!confirm('Delete this completed risk?')) return;
+				await apiDeleteRisk(risk.id);
+				await render();
 				});
 				actionTd.appendChild(delBtn);
 			} else {
@@ -141,8 +144,13 @@
 			tr.appendChild(statusTd);
 			tr.appendChild(actionTd);
 			tableBody.appendChild(tr);
-		});
-	}
+			});
+		} catch (e) {
+			console.error(e);
+			tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#b00;padding:8px;">Failed to load risks.</td></tr>`;
+		}
+		}
+
 
 	function openNewModal() {
 		openModal('New Risk', buildRiskForm(), ({ close, getValues }) => {

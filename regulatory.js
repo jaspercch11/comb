@@ -70,10 +70,12 @@
     // Set dynamic inner width so each category gets a fixed pixel width
     const perCategoryWidth = 110; // px/bar label area
     const inner = document.querySelector('.chart-inner');
-    if (inner) {
-      const dynamicWidth = Math.max(inner.parentElement.clientWidth, departments.length * perCategoryWidth);
-      inner.style.width = dynamicWidth + 'px';
-    }
+if (inner) {
+  const container = inner.parentElement;
+  const containerWidth = container ? container.clientWidth : 0;
+  const dynamicWidth = Math.max(containerWidth, departments.length * perCategoryWidth);
+  inner.style.width = dynamicWidth + 'px';
+}
 
     window._regComplianceChart = new Chart(ctx, {
       type: 'bar',
@@ -243,8 +245,10 @@
       'Inventory & Warehouse Mgmt.','Procurement','Finance and Accounting',
       'B.I. and Analytics','Compliance & Risk Mangement'
     ];
-    const perCategoryWidth = 120;
-    const dynamicWidth = Math.max(inner.parentElement.clientWidth, labels.length * perCategoryWidth);
+    const container = inner.parentElement;
+    const containerWidth = container ? container.clientWidth : 0;
+    const perCategoryWidth = 110;
+    const dynamicWidth = Math.max(containerWidth, labels.length * perCategoryWidth);
     inner.style.width = dynamicWidth + 'px';
   });
 })();

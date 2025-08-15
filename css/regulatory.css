@@ -480,6 +480,7 @@ header {
   display: block;
   width: 100% !important;
   height: 100% !important;
+  max-width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -518,18 +519,22 @@ header {
   height: 360px; /* identical fixed height */
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
+.content .left { overflow: hidden; }
 .content .left > *,
 .content .right > * {
   flex: 0 0 auto;
 }
 /* Make inner content scroll within fixed panels */
 .chart-scroll { flex: 1 1 auto; overflow-x: auto; overflow-y: hidden; }
+.chart-scroll::-webkit-scrollbar { height: 8px; }
+.chart-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 .task-list { flex: 1 1 auto; overflow-y: auto; max-height: none; }
 
 /* Ensure chart fills the fixed-height panel */
-.chart-inner { height: 100%; }
-.chart-scroll { min-height: 0; }
+.chart-inner { height: 100%; width: max(100%, 900px); }
+.chart-scroll { min-height: 0; overflow: hidden; }
 
 /* Align header spacing between panels */
 .pending-header { margin-bottom: 10px; }

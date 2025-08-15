@@ -153,7 +153,7 @@ if (inner) {
     const modal=document.createElement('div');
     modal.className='modal';
     const rows = Array.isArray(items) ? items : [];
-    const tableRows = rows.slice(0,3).map(it=>{
+    const tableRows = rows.map(it=>{
       const type = String(it.type||'').toUpperCase();
       const title = String(it.title||'—');
       const due = it.dueDate ? new Date(it.dueDate).toLocaleDateString() : '—';

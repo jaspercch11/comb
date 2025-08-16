@@ -42,9 +42,15 @@
       const riskLevel = r.risk_level || 'Medium';
       const riskLevelClass = riskLevel.toLowerCase();
       
+      // Handle multiple departments display
+      const departments = r.departments || [r.department].filter(Boolean);
+      const departmentDisplay = departments.length > 0 ? 
+        departments.map(dept => `<span class="dept-tag">${dept}</span>`).join('') : 
+        '<span class="dept-tag empty">No Department</span>';
+      
       tr.innerHTML = `
         <td>${r.name}</td>
-        <td>${r.department}</td>
+        <td class="departments-cell">${departmentDisplay}</td>
         <td>${r.status}</td>
         <td><span class="${riskLevelClass}">${riskLevel}</span></td>
         <td>${r.last_review ? new Date(r.last_review).toISOString().slice(0,10) : ''}</td>
@@ -443,8 +449,9 @@
             <input type="text" id="regName" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
           </div>
           <div style="margin-bottom: 15px;">
-            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Department:</label>
-            <input type="text" id="regDepartment" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Departments (comma-separated):</label>
+            <input type="text" id="regDepartments" required placeholder="e.g., Finance, IT, Legal" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <small style="color: #666; font-size: 12px;">Enter multiple departments separated by commas</small>
           </div>
           <div style="margin-bottom: 15px;">
             <label style="display: block; font-weight: 600; margin-bottom: 5px;">Risk Level:</label>
@@ -489,14 +496,17 @@
 
   async function submitAddRegulation() {
     const name = document.getElementById('regName').value;
-    const department = document.getElementById('regDepartment').value;
+    const departmentsText = document.getElementById('regDepartments').value;
     const riskLevel = document.getElementById('regRiskLevel').value;
+    
+    // Parse departments from comma-separated text
+    const departments = departmentsText.split(',').map(dept => dept.trim()).filter(dept => dept.length > 0);
     const nextReview = document.getElementById('regNextReview').value;
     
-    if (!name || !department || !nextReview) {
-      alert('Please fill in all required fields');
-      return;
-    }
+          if (!name || departments.length === 0 || !nextReview) {
+        alert('Please fill in all required fields');
+        return;
+      }
     
     try {
       // This would typically send data to your backend API

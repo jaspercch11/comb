@@ -26,7 +26,7 @@ app.get('/findings.html', (req, res) => res.sendFile(path.join(__dirname, 'findi
 
 // ===== DB Connection =====
 const pool = new Pool({
-  connectionString: 'postgresql://neondb_owner:npg_G3njlbe4Jwok@ep-tiny-cake-ad0tfyr6-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+  connectionString: 'postgresql://neondb_owner:npg_J1gloZUcFQS2@ep-still-truth-a1051s4o-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
   ssl: { rejectUnauthorized: false }
 });
 

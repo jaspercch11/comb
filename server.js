@@ -692,11 +692,11 @@ app.get('/api/notifications', async (req, res) => {
         return notifications;
       })(),
       
-      // Custom notifications from notifications table
+      // Custom notifications from notif table
       auditsDb.query(`
-        SELECT id, title, message, type, dept, sender_dept, sender_user, 
-               is_read, created_at, priority, action_required, action_url
-        FROM notifications 
+        SELECT id, title, message, 'notification' as type, dept, sender as sender_dept, sender as sender_user, 
+               is_read, created_at, 'normal' as priority, false as action_required, null as action_url
+        FROM notif 
         ORDER BY created_at DESC 
         LIMIT 50
       `)
@@ -744,10 +744,10 @@ app.post('/api/notifications', async (req, res) => {
     }
 
     const result = await auditsDb.query(`
-      INSERT INTO notifications (title, message, type, dept, sender_dept, sender_user, priority, action_required, action_url, metadata)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO notif (title, message, dept, sender) 
+      VALUES ($1, $2, $3, $4)
       RETURNING id, created_at
-    `, [title, message, type || 'info', dept, sender_dept, sender_user, priority || 'normal', action_required || false, action_url, metadata]);
+    `, [title, message, dept, sender_dept || sender_user || 'System']);
 
     const notification = result.rows[0];
     
@@ -777,8 +777,8 @@ app.put('/api/notifications/:id/read', async (req, res) => {
     const { id } = req.params;
     
     await auditsDb.query(`
-      UPDATE notifications 
-      SET is_read = true, read_at = now() 
+      UPDATE notif 
+      SET is_read = true 
       WHERE id = $1
     `, [id]);
     
@@ -794,7 +794,7 @@ app.get('/api/notifications/count', async (req, res) => {
   try {
     const result = await auditsDb.query(`
       SELECT COUNT(*) as count 
-      FROM notifications 
+      FROM notif 
       WHERE is_read = false
     `);
     

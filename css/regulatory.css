@@ -545,9 +545,13 @@ header {
 .chart-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  /* Ensure enough height for labels */
+  padding-bottom: 20px;
 }
 .chart-inner {
   min-width: 100%;
+  /* Ensure chart has enough space for labels */
+  height: calc(100% - 40px);
 }
 
 /* Shorter chart height override */
@@ -568,7 +572,7 @@ header {
 }
 .content .left,
 .content .right {
-  height: 360px; /* identical fixed height */
+  height: 400px; /* Increased height to accommodate labels */
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -585,11 +589,36 @@ header {
 .task-list { flex: 1 1 auto; overflow-y: auto; max-height: none; }
 
 /* Ensure chart fills the fixed-height panel */
-.chart-inner { height: 100%; width: max(100%, 900px); }
-.chart-scroll { min-height: 0; overflow: auto; }
+.chart-inner { 
+  height: 100%; 
+  width: max(100%, 900px); 
+  /* Ensure enough space for labels */
+  padding-bottom: 10px;
+}
+.chart-scroll { 
+  min-height: 0; 
+  overflow: auto; 
+  /* Ensure labels are visible */
+  padding-bottom: 30px;
+}
 
 /* Align header spacing between panels */
 
-
-
 .pending-header { margin-bottom: 10px; }
+
+/* Chart label improvements */
+.chart-scroll canvas {
+  /* Ensure chart is properly displayed */
+  display: block;
+  max-height: calc(100% - 50px); /* Leave space for labels */
+}
+
+/* Ensure department names are readable */
+.chart-inner {
+  position: relative;
+}
+
+/* Add some breathing room for the chart */
+.content .left {
+  padding-right: 10px;
+}

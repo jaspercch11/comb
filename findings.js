@@ -625,9 +625,65 @@
 		const categoryFilter = document.getElementById('categoryFilter');
 		const addRiskBtn = document.getElementById('addRiskBtn');
 		
-		// Empty risk data array - will be populated by user
+		// Heatmap risks data - will be loaded from database
 		let heatmapRisks = [];
-		let riskCounter = 1;
+
+		// Database API functions for heatmap risks
+		async function fetchHeatmapRisks() {
+			try {
+				const response = await fetch(`${API_BASE}/api/heatmap-risks`);
+				if (!response.ok) throw new Error('Failed to fetch heatmap risks');
+				const risks = await response.json();
+				heatmapRisks = risks;
+				return risks;
+			} catch (error) {
+				console.error('Error fetching heatmap risks:', error);
+				return [];
+			}
+		}
+
+		async function createHeatmapRisk(riskData) {
+			try {
+				const response = await fetch(`${API_BASE}/api/heatmap-risks`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(riskData)
+				});
+				if (!response.ok) throw new Error('Failed to create heatmap risk');
+				return await response.json();
+			} catch (error) {
+				console.error('Error creating heatmap risk:', error);
+				throw error;
+			}
+		}
+
+		async function updateHeatmapRisk(id, riskData) {
+			try {
+				const response = await fetch(`${API_BASE}/api/heatmap-risks/${id}`, {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(riskData)
+				});
+				if (!response.ok) throw new Error('Failed to update heatmap risk');
+				return await response.json();
+			} catch (error) {
+				console.error('Error updating heatmap risk:', error);
+				throw error;
+			}
+		}
+
+		async function deleteHeatmapRisk(id) {
+			try {
+				const response = await fetch(`${API_BASE}/api/heatmap-risks/${id}`, {
+					method: 'DELETE'
+				});
+				if (!response.ok) throw new Error('Failed to delete heatmap risk');
+				return await response.json();
+			} catch (error) {
+				console.error('Error deleting heatmap risk:', error);
+				throw error;
+			}
+		}
 
 		// Function to render the heatmap
 		function renderHeatmap(filter = 'all') {
@@ -862,7 +918,7 @@
 		}
 
 		// Function to submit new risk
-		function submitAddRisk() {
+		async function submitAddRisk() {
 			const name = document.getElementById('addRiskName').value;
 			const dept = document.getElementById('addRiskDept').value;
 			const category = document.getElementById('addRiskCategory').value;
@@ -874,22 +930,26 @@
 				return;
 			}
 
-			const newRisk = {
-				id: riskCounter++,
-				name: name,
-				dept: dept,
-				category: category,
-				impact: impact,
-				likelihood: likelihood
-			};
+			try {
+				const newRisk = await createHeatmapRisk({
+					name: name,
+					dept: dept,
+					category: category,
+					impact: impact,
+					likelihood: likelihood
+				});
 
-			heatmapRisks.push(newRisk);
-			renderHeatmap(categoryFilter.value);
-			closeAddModal();
+				// Refresh the risks list and re-render
+				await fetchHeatmapRisks();
+				renderHeatmap(categoryFilter.value);
+				closeAddModal();
+			} catch (error) {
+				alert('Error adding risk: ' + error.message);
+			}
 		}
 
 		// Function to update existing risk
-		function updateRisk(riskId) {
+		async function updateRisk(riskId) {
 			const risk = heatmapRisks.find(r => r.id === riskId);
 			if (!risk) return;
 
@@ -904,23 +964,37 @@
 				return;
 			}
 
-			// Update risk properties
-			risk.name = name;
-			risk.dept = dept;
-			risk.category = category;
-			risk.impact = impact;
-			risk.likelihood = likelihood;
+			try {
+				await updateHeatmapRisk(riskId, {
+					name: name,
+					dept: dept,
+					category: category,
+					impact: impact,
+					likelihood: likelihood
+				});
 
-			renderHeatmap(categoryFilter.value);
-			closeEditModal();
+				// Refresh the risks list and re-render
+				await fetchHeatmapRisks();
+				renderHeatmap(categoryFilter.value);
+				closeEditModal();
+			} catch (error) {
+				alert('Error updating risk: ' + error.message);
+			}
 		}
 
 		// Function to delete risk
-		function deleteRisk(riskId) {
+		async function deleteRisk(riskId) {
 			if (confirm('Are you sure you want to delete this risk?')) {
-				heatmapRisks = heatmapRisks.filter(r => r.id !== riskId);
-				renderHeatmap(categoryFilter.value);
-				closeEditModal();
+				try {
+					await deleteHeatmapRisk(riskId);
+					
+					// Refresh the risks list and re-render
+					await fetchHeatmapRisks();
+					renderHeatmap(categoryFilter.value);
+					closeEditModal();
+				} catch (error) {
+					alert('Error deleting risk: ' + error.message);
+				}
 			}
 		}
 
@@ -992,7 +1066,9 @@
 		}
 
 		// Initialize heatmap on page load
-		document.addEventListener('DOMContentLoaded', () => {
+		document.addEventListener('DOMContentLoaded', async () => {
+			// Load risks from database first
+			await fetchHeatmapRisks();
 			renderHeatmap();
 		});
 

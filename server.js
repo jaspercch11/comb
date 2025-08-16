@@ -32,6 +32,16 @@ const pool = new Pool({
 
 const auditsDb = pool;
 
+// Ensure optional schema for filtering UI-created risks
+(async function ensureSchema(){
+  try {
+    await pool.query(`ALTER TABLE risks ADD COLUMN IF NOT EXISTS created_via TEXT`);
+    await pool.query(`ALTER TABLE risks ADD COLUMN IF NOT EXISTS hidden_in_findings BOOLEAN DEFAULT FALSE`);
+  } catch (e) {
+    console.warn('ensureSchema skipped or failed:', e?.message || e);
+  }
+})();
+
 // ---- Helpers used in risk routes ----
 async function computeRiskProgress(riskId) {
   const { rows } = await auditsDb.query(
@@ -516,6 +526,87 @@ app.get('/api/dashboard/pending', async (req, res) => {
   }
 });
 
+// Notifications feed
+app.get('/api/notifications', async (req, res) => {
+  function toDate(value) {
+    if (!value) return null;
+    try {
+      const d = value instanceof Date ? value : new Date(value);
+      return isNaN(d.getTime()) ? null : d;
+    } catch {
+      return null;
+    }
+  }
+  function cap(s){ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); }
+  try {
+    const [incRes, audRes, docRes, riskRes] = await Promise.all([
+      auditsDb.query('SELECT incident_id, incident_type, status, severity_level, date_reported FROM incidents ORDER BY date_reported DESC LIMIT 20'),
+      auditsDb.query('SELECT audit_id, audit_name, status, audit_date FROM audits ORDER BY audit_date DESC LIMIT 20'),
+      auditsDb.query('SELECT document_id, file_name, owner_dept, approval_status, last_review FROM policy_documents ORDER BY document_id DESC LIMIT 20'),
+      auditsDb.query(`
+        SELECT r.risk_id, r.risk_title, r.dept, r.review_date,
+          COALESCE(ROUND(CASE WHEN SUM(rt.weight)>0 THEN SUM(CASE WHEN rt.done THEN rt.weight ELSE 0 END)::float / SUM(rt.weight) * 100 ELSE 0 END),0) AS progress
+        FROM risks r LEFT JOIN risk_tasks rt ON r.risk_id=rt.risk_id
+        GROUP BY r.risk_id
+        ORDER BY r.risk_id DESC LIMIT 20`)
+    ]);
+
+    const notifications = [];
+
+    incRes.rows.forEach(r => {
+      notifications.push({
+        id: `incident-${r.incident_id}`,
+        type: 'incident',
+        title: r.incident_type || 'Incident',
+        message: `${cap(r.status)}${r.severity_level ? ' • ' + r.severity_level : ''}`,
+        date: r.date_reported,
+        severity: r.severity_level || null
+      });
+    });
+
+    audRes.rows.forEach(r => {
+      notifications.push({
+        id: `audit-${r.audit_id}`,
+        type: 'audit',
+        title: r.audit_name || 'Audit',
+        message: cap(r.status),
+        date: r.audit_date
+      });
+    });
+
+    docRes.rows.forEach(r => {
+      notifications.push({
+        id: `doc-${r.document_id}`,
+        type: 'document',
+        title: r.file_name || r.owner_dept || 'Document',
+        message: r.approval_status ? cap(r.approval_status) : 'Pending',
+        date: r.last_review
+      });
+    });
+
+    riskRes.rows.forEach(r => {
+      notifications.push({
+        id: `risk-${r.risk_id}`,
+        type: 'risk',
+        title: r.risk_title || 'Risk',
+        message: `Progress: ${r.progress}%`,
+        date: r.review_date
+      });
+    });
+
+    notifications.sort((a,b)=>{
+      const da = toDate(a.date)?.getTime() || 0;
+      const db = toDate(b.date)?.getTime() || 0;
+      return db - da;
+    });
+
+    res.json(notifications.slice(0, 50));
+  } catch (e) {
+    console.error('Notifications failed', e);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
 // POST /api/risks  -> create a risk and (optionally) tasks
 app.post('/api/risks', async (req, res) => {
   try {
@@ -524,11 +615,21 @@ app.post('/api/risks', async (req, res) => {
     if (!risk_title) return res.status(400).json({ error: 'risk_title is required' });
 
     // Insert risk
-    const r = await auditsDb.query(
-      `INSERT INTO risks (risk_title, dept, review_date)
-       VALUES ($1, $2, $3) RETURNING risk_id AS id, risk_title, dept, review_date`,
-      [risk_title, dept || null, review_date || null]
-    );
+    let r;
+    try {
+      r = await auditsDb.query(
+        `INSERT INTO risks (risk_title, dept, review_date, created_via)
+         VALUES ($1, $2, $3, 'ui') RETURNING risk_id AS id, risk_title, dept, review_date`,
+        [risk_title, dept || null, review_date || null]
+      );
+    } catch (e) {
+      // Fallback if created_via column doesn't exist
+      r = await auditsDb.query(
+        `INSERT INTO risks (risk_title, dept, review_date)
+         VALUES ($1, $2, $3) RETURNING risk_id AS id, risk_title, dept, review_date`,
+        [risk_title, dept || null, review_date || null]
+      );
+    }
     const risk = r.rows[0];
 
     // Insert tasks if provided (or leave empty)
@@ -558,7 +659,11 @@ app.delete('/api/risks/:id', async (req, res) => {
   const { id } = req.params;
   try {
     await auditsDb.query('BEGIN');
+    // Unlink incidents referencing this risk to avoid FK violation
+    await auditsDb.query('UPDATE incidents SET risk_id = NULL WHERE risk_id = $1', [id]);
+    // Delete tasks first due to FK
     await auditsDb.query('DELETE FROM risk_tasks WHERE risk_id = $1', [id]);
+    // Delete the risk
     const out = await auditsDb.query('DELETE FROM risks WHERE risk_id = $1 RETURNING risk_id', [id]);
     await auditsDb.query('COMMIT');
 
@@ -600,6 +705,78 @@ app.get('/api/risks', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching risks:', error);
+    res.status(500).json({ error: 'Failed to fetch risks.' });
+  }
+});
+
+// Risks for Findings view only (exclude those hidden in findings)
+app.get('/api/risks/findings', async (req, res) => {
+  try {
+    const result = await auditsDb.query(`
+      SELECT
+        r.risk_id AS id,
+        r.risk_title,
+        r.dept,
+        r.review_date,
+        COALESCE(
+          ROUND(
+            CASE WHEN SUM(rt.weight) > 0
+              THEN SUM(CASE WHEN rt.done THEN rt.weight ELSE 0 END)::float / SUM(rt.weight) * 100
+              ELSE 0 END
+          ), 0
+        ) AS progress,
+        'on track' AS status
+      FROM risks r
+      LEFT JOIN risk_tasks rt ON r.risk_id = rt.risk_id
+      WHERE COALESCE(r.hidden_in_findings, FALSE) = FALSE
+      GROUP BY r.risk_id
+      ORDER BY r.review_date ASC
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching findings risks:', error);
+    res.status(500).json({ error: 'Failed to fetch risks.' });
+  }
+});
+
+// Hide a risk from Findings (do not delete DB rows)
+app.put('/api/risks/:id/hide-in-findings', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await auditsDb.query('UPDATE risks SET hidden_in_findings = TRUE WHERE risk_id = $1', [id]);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Hide in findings failed', e);
+    res.status(500).json({ error: 'Failed to hide risk in findings' });
+  }
+});
+
+// Only UI-created risks (used by Findings UI to prevent auto-synced entries)
+app.get('/api/risks/ui', async (req, res) => {
+  try {
+    const result = await auditsDb.query(`
+      SELECT
+        r.risk_id AS id,
+        r.risk_title,
+        r.dept,
+        r.review_date,
+        COALESCE(
+          ROUND(
+            CASE WHEN SUM(rt.weight) > 0
+              THEN SUM(CASE WHEN rt.done THEN rt.weight ELSE 0 END)::float / SUM(rt.weight) * 100
+              ELSE 0 END
+          ), 0
+        ) AS progress,
+        'on track' AS status
+      FROM risks r
+      LEFT JOIN risk_tasks rt ON r.risk_id = rt.risk_id
+      WHERE COALESCE(r.created_via, '') = 'ui'
+      GROUP BY r.risk_id
+      ORDER BY r.review_date ASC
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching UI risks:', error);
     res.status(500).json({ error: 'Failed to fetch risks.' });
   }
 });

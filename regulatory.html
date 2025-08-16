@@ -51,7 +51,12 @@
         <section class="content">
             <div class="row">
                 <div class="left">
-                    <h2>Compliance Status by Department</h2>
+                    <div class="pending-header">
+                      <h2>Compliance Status by Department</h2>
+                      <div>
+                                                 <button id="deptFilterBtn" class="btn btn-primary">🔍 Filter</button>
+                      </div>
+                    </div>
                     <div class="chart-scroll">
                       <div class="chart-inner">
                         <canvas id="complianceChart"></canvas>
@@ -150,9 +155,10 @@
 
         </section>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="notifications.js"></script>
     <script src="regulatory.js"></script>
-</body>
+  </body>
 </html>
 
 

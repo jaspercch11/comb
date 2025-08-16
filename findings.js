@@ -19,7 +19,7 @@
 	}
 
 	async function apiGetRisks() {
-		const res = await fetch(`${API_BASE}/api/risks`);
+		const res = await fetch(`${API_BASE}/api/risks/findings`);
 		if (!res.ok) throw new Error('Failed to load risks');
 		return await res.json();
 	}
@@ -120,14 +120,14 @@
 
 			const actionTd = document.createElement('td');
 			if ((risk.progress || 0) === 100) {
-				const delBtn = document.createElement('button');
-				delBtn.className = 'btn-edit';
-				delBtn.textContent = 'Delete';
-				delBtn.addEventListener('click', async () => {
-				if (!confirm('Delete this completed risk?')) return;
-				await apiDeleteRisk(risk.id);
-				await render();
-				});
+								const delBtn = document.createElement('button');
+																delBtn.className = 'btn-edit';
+																delBtn.textContent = 'Delete';
+																delBtn.addEventListener('click', async () => {
+																if (!confirm('Remove this completed risk from Findings?')) return;
+																await fetch(`${API_BASE}/api/risks/${risk.id}/hide-in-findings`, { method: 'PUT' });
+																await render();
+															});
 				actionTd.appendChild(delBtn);
 			} else {
 				const editBtn = document.createElement('button');
@@ -623,7 +623,7 @@
 
 	// Function to fetch and display all risks in the table
 	async function loadRisks() {
-		const res = await fetch('http://localhost:3000/api/risks');
+		const res = await fetch('http://localhost:3000/api/risks/findings');
 		const risks = await res.json();
 		const tableBody = document.getElementById('risks-table-body');
 		if (!tableBody) return;

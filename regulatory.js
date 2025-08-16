@@ -5,6 +5,9 @@
   const viewAllLink=document.querySelector('.view-all');
   let latestPending = [];
 
+  let currentDeptFilter = '';
+  let deptChoices = [];
+
   async function fetchRegs(){
     const res=await fetch(`${API}/api/regulations`);
     if(!res.ok) return [];
@@ -58,35 +61,119 @@
     document.getElementById('reviewSoon').textContent = soon;
   }
 
+  async function populateDeptFilter(){
+    const btn = document.getElementById('deptFilterBtn');
+    if(!btn) return;
+    try{
+      const [audits, incidents, documents, regs, risks] = await Promise.all([
+        fetch('http://localhost:3000/audits').then(r=>r.ok?r.json():[]).catch(()=>[]),
+        fetch('http://localhost:3000/api/incidents').then(r=>r.ok?r.json():[]).catch(()=>[]),
+        fetch('http://localhost:3000/documents').then(r=>r.ok?r.json():[]).catch(()=>[]),
+        fetchRegs(),
+        fetch('http://localhost:3000/api/risks').then(r=>r.ok?r.json():[]).catch(()=>[])
+      ]);
+      const norm = (s)=> String(s||'').trim();
+      const set = new Set();
+      audits.forEach(a=>{ const v=norm(a.dept_audited); if(v) set.add(v); });
+      incidents.forEach(i=>{ const v=norm(i.department); if(v) set.add(v); });
+      documents.forEach(d=>{ const v=norm(d.owner_dept); if(v) set.add(v); });
+      regs.forEach(r=>{ const v=norm(r.department); if(v) set.add(v); });
+      risks.forEach(r=>{ const v=norm(r.dept); if(v) set.add(v); });
+      deptChoices = [''].concat(Array.from(set).sort());
+      btn.addEventListener('click', openDeptFilterModal);
+    }catch(_){ /* no-op */ }
+  }
+
+  function openDeptFilterModal(){
+    const overlay=document.createElement('div');
+    overlay.className='modal-overlay';
+    const modal=document.createElement('div');
+    modal.className='modal';
+    const options = deptChoices.map(v=>`<option value="${v}">${v||'All Departments'}</option>`).join('');
+    modal.innerHTML = `
+      <div class="modal-header"><h3>Select Department</h3><button class="modal-close">&times;</button></div>
+      <div class="modal-body">
+        <label style="display:block; font-weight:600; margin-bottom:6px;">Department</label>
+        <select id="deptSelectModal" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+          ${options}
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="deptClearBtn">Clear</button>
+        <button class="btn btn-primary" id="deptApplyBtn">Apply</button>
+      </div>
+    `;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    overlay.style.display='flex';
+
+    const close=()=>{ try { document.body.removeChild(overlay); } catch(e){} };
+    modal.querySelector('.modal-close').onclick=close;
+    overlay.addEventListener('click', (e)=>{ if(e.target===overlay) close(); });
+    document.addEventListener('keydown', function onKey(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', onKey); } });
+
+    const selectEl = modal.querySelector('#deptSelectModal');
+    selectEl.value = currentDeptFilter || '';
+    modal.querySelector('#deptClearBtn').onclick = ()=>{ currentDeptFilter=''; renderChart(); close(); };
+    modal.querySelector('#deptApplyBtn').onclick = ()=>{ currentDeptFilter = selectEl.value || ''; renderChart(); close(); };
+  }
+
   async function renderChart(){
-    const regs = await fetchRegs();
-    // Build department list dynamically from data to avoid mismatches
-    const deptSet = new Set(regs.map(r => r.department).filter(Boolean));
-    const departments = Array.from(deptSet);
-    const toLower = (v) => String(v || '').toLowerCase();
-    const compliantData = departments.map(d => regs.filter(r => r.department === d && toLower(r.status) === 'compliant').length);
-    const nonCompliantData = departments.map(d => regs.filter(r => r.department === d && toLower(r.status) === 'non-compliant').length);
+    const labels = ['Audits','Incidents','Documents','Regulations','Risks'];
+    async function fetchArray(url){
+      try{
+        const res = await fetch(url);
+        if(!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      }catch(_){
+        return [];
+      }
+    }
+
+    const [audits, incidents, documents, regs, risks] = await Promise.all([
+      fetchArray(`${API}/audits`),
+      fetchArray(`${API}/api/incidents`),
+      fetchArray(`${API}/documents`),
+      fetchRegs(),
+      fetchArray(`${API}/api/risks`)
+    ]);
+
+    const norm = (s)=> String(s||'').toLowerCase().trim();
+    const filterByDept = (arr, getter)=> currentDeptFilter ? arr.filter(x=> norm(getter(x)) === norm(currentDeptFilter)) : arr;
+
+    const counts = [
+      filterByDept(audits, a=>a.dept_audited).length,
+      filterByDept(incidents, i=>i.department).length,
+      filterByDept(documents, d=>d.owner_dept).length,
+      filterByDept(regs, r=>r.department).length,
+      filterByDept(risks, r=>r.dept).length
+    ];
+
     const ctx = document.getElementById('complianceChart').getContext('2d');
     if (window._regComplianceChart) {
       window._regComplianceChart.destroy();
     }
-    // Set dynamic inner width so each category gets a fixed pixel width
+
     const perCategoryWidth = 110; // px/bar label area
     const inner = document.querySelector('.chart-inner');
-if (inner) {
-  const container = inner.parentElement;
-  const containerWidth = container ? container.clientWidth : 0;
-  const dynamicWidth = Math.max(containerWidth, departments.length * perCategoryWidth);
-  inner.style.width = dynamicWidth + 'px';
-}
+    if (inner) {
+      const container = inner.parentElement;
+      const containerWidth = container ? container.clientWidth : 0;
+      const dynamicWidth = Math.max(containerWidth, labels.length * perCategoryWidth);
+      inner.style.width = dynamicWidth + 'px';
+    }
 
     window._regComplianceChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: departments,
+        labels,
         datasets: [
-          { label: 'Compliant', data: compliantData, backgroundColor: '#4caf50' },
-          { label: 'Non-Compliant', data: nonCompliantData, backgroundColor: '#f44336' }
+          {
+            label: currentDeptFilter ? `Records (${currentDeptFilter})` : 'System Records',
+            data: counts,
+            backgroundColor: ['#42a5f5','#66bb6a','#ffa726','#ab47bc','#ef5350']
+          }
         ]
       },
       options: {
@@ -220,6 +307,7 @@ if (inner) {
     renderTopCards(regs);
     renderPending(await fetchPending());
     badgePopups();
+    await populateDeptFilter();
   }
 
   load();

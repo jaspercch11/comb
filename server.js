@@ -421,7 +421,7 @@ app.get('/api/documents/:id/view', async (req, res) => {
    >>> REGULATIONS & DASHBOARD API <<<
    ============================================ */
 
-app.get('/api/risks/:id', async (req, res) => {
+app.get('/api/risks/:id(\\d+)', async (req, res) => {
   const { id } = req.params;
   try {
     const riskResult = await auditsDb.query(

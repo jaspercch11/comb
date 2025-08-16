@@ -59,6 +59,24 @@ const auditsDb = pool;
       updated_at TIMESTAMPTZ DEFAULT now()
     )`);
     
+    // Create notifications table
+    await pool.query(`CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'info',
+      dept TEXT,
+      sender_dept TEXT,
+      sender_user TEXT,
+      is_read BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      read_at TIMESTAMPTZ,
+      priority TEXT DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
+      action_required BOOLEAN DEFAULT FALSE,
+      action_url TEXT,
+      metadata JSONB
+    )`);
+    
     console.log('Database schema updated successfully');
   } catch (e) {
     console.warn('ensureSchema skipped or failed:', e?.message || e);
@@ -596,82 +614,194 @@ app.get('/api/dashboard/pending', async (req, res) => {
 
 // Notifications feed
 app.get('/api/notifications', async (req, res) => {
-  function toDate(value) {
-    if (!value) return null;
-    try {
-      const d = value instanceof Date ? value : new Date(value);
-      return isNaN(d.getTime()) ? null : d;
-    } catch {
-      return null;
-    }
-  }
-  function cap(s){ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); }
   try {
-    const [incRes, audRes, docRes, riskRes] = await Promise.all([
-      auditsDb.query('SELECT incident_id, incident_type, status, severity_level, date_reported FROM incidents ORDER BY date_reported DESC LIMIT 20'),
-      auditsDb.query('SELECT audit_id, audit_name, status, audit_date FROM audits ORDER BY audit_date DESC LIMIT 20'),
-      auditsDb.query('SELECT document_id, file_name, owner_dept, approval_status, last_review FROM policy_documents ORDER BY document_id DESC LIMIT 20'),
+    // Get both system notifications and custom notifications
+    const [systemNotifs, customNotifs] = await Promise.all([
+      // System notifications (existing logic)
+      (async () => {
+        function toDate(value) {
+          if (!value) return null;
+          try {
+            const d = value instanceof Date ? value : new Date(value);
+            return isNaN(d.getTime()) ? null : d;
+          } catch {
+            return null;
+          }
+        }
+        function cap(s){ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); }
+        
+        const [incRes, audRes, docRes, riskRes] = await Promise.all([
+          auditsDb.query('SELECT incident_id, incident_type, status, severity_level, date_reported FROM incidents ORDER BY date_reported DESC LIMIT 20'),
+          auditsDb.query('SELECT audit_id, audit_name, status, audit_date FROM audits ORDER BY audit_date DESC LIMIT 20'),
+          auditsDb.query('SELECT document_id, file_name, owner_dept, approval_status, last_review FROM policy_documents ORDER BY document_id DESC LIMIT 20'),
+          auditsDb.query(`
+            SELECT r.risk_id, r.risk_title, r.dept, r.review_date,
+              COALESCE(ROUND(CASE WHEN SUM(rt.weight)>0 THEN SUM(CASE WHEN rt.done THEN rt.weight ELSE 0 END)::float / SUM(rt.weight) * 100 ELSE 0 END),0) AS progress
+            FROM risks r LEFT JOIN risk_tasks rt ON r.risk_id=rt.risk_id
+            GROUP BY r.risk_id
+            ORDER BY r.risk_id DESC LIMIT 20`)
+        ]);
+
+        const notifications = [];
+
+        incRes.rows.forEach(r => {
+          notifications.push({
+            id: `incident-${r.incident_id}`,
+            type: 'incident',
+            title: r.incident_type || 'Incident',
+            message: `${cap(r.status)}${r.severity_level ? ' • ' + r.severity_level : ''}`,
+            date: r.date_reported,
+            severity: r.severity_level || null,
+            isSystem: true
+          });
+        });
+
+        audRes.rows.forEach(r => {
+          notifications.push({
+            id: `audit-${r.audit_id}`,
+            type: 'audit',
+            title: r.audit_name || 'Audit',
+            message: cap(r.status),
+            date: r.audit_date,
+            isSystem: true
+          });
+        });
+
+        docRes.rows.forEach(r => {
+          notifications.push({
+            id: `doc-${r.document_id}`,
+            type: 'document',
+            title: r.file_name || r.owner_dept || 'Document',
+            message: r.approval_status ? cap(r.approval_status) : 'Pending',
+            date: r.last_review,
+            isSystem: true
+          });
+        });
+
+        riskRes.rows.forEach(r => {
+          notifications.push({
+            id: `risk-${r.risk_id}`,
+            type: 'risk',
+            title: r.risk_title || 'Risk',
+            message: `Progress: ${r.progress}%`,
+            date: r.review_date,
+            isSystem: true
+          });
+        });
+
+        return notifications;
+      })(),
+      
+      // Custom notifications from notifications table
       auditsDb.query(`
-        SELECT r.risk_id, r.risk_title, r.dept, r.review_date,
-          COALESCE(ROUND(CASE WHEN SUM(rt.weight)>0 THEN SUM(CASE WHEN rt.done THEN rt.weight ELSE 0 END)::float / SUM(rt.weight) * 100 ELSE 0 END),0) AS progress
-        FROM risks r LEFT JOIN risk_tasks rt ON r.risk_id=rt.risk_id
-        GROUP BY r.risk_id
-        ORDER BY r.risk_id DESC LIMIT 20`)
+        SELECT id, title, message, type, dept, sender_dept, sender_user, 
+               is_read, created_at, priority, action_required, action_url
+        FROM notifications 
+        ORDER BY created_at DESC 
+        LIMIT 50
+      `)
     ]);
 
-    const notifications = [];
+    // Combine and format custom notifications
+    const formattedCustomNotifs = customNotifs.rows.map(r => ({
+      id: `notif-${r.id}`,
+      type: r.type || 'notification',
+      title: r.title,
+      message: r.message,
+      date: r.created_at,
+      dept: r.dept,
+      sender_dept: r.sender_dept,
+      sender_user: r.sender_user,
+      is_read: r.is_read,
+      priority: r.priority,
+      action_required: r.action_required,
+      action_url: r.action_url,
+      isSystem: false
+    }));
 
-    incRes.rows.forEach(r => {
-      notifications.push({
-        id: `incident-${r.incident_id}`,
-        type: 'incident',
-        title: r.incident_type || 'Incident',
-        message: `${cap(r.status)}${r.severity_level ? ' • ' + r.severity_level : ''}`,
-        date: r.date_reported,
-        severity: r.severity_level || null
-      });
-    });
-
-    audRes.rows.forEach(r => {
-      notifications.push({
-        id: `audit-${r.audit_id}`,
-        type: 'audit',
-        title: r.audit_name || 'Audit',
-        message: cap(r.status),
-        date: r.audit_date
-      });
-    });
-
-    docRes.rows.forEach(r => {
-      notifications.push({
-        id: `doc-${r.document_id}`,
-        type: 'document',
-        title: r.file_name || r.owner_dept || 'Document',
-        message: r.approval_status ? cap(r.approval_status) : 'Pending',
-        date: r.last_review
-      });
-    });
-
-    riskRes.rows.forEach(r => {
-      notifications.push({
-        id: `risk-${r.risk_id}`,
-        type: 'risk',
-        title: r.risk_title || 'Risk',
-        message: `Progress: ${r.progress}%`,
-        date: r.review_date
-      });
-    });
-
-    notifications.sort((a,b)=>{
-      const da = toDate(a.date)?.getTime() || 0;
-      const db = toDate(b.date)?.getTime() || 0;
+    // Combine all notifications and sort by date
+    const allNotifications = [...formattedCustomNotifs, ...systemNotifs];
+    allNotifications.sort((a,b)=>{
+      const da = new Date(a.date)?.getTime() || 0;
+      const db = new Date(b.date)?.getTime() || 0;
       return db - da;
     });
 
-    res.json(notifications.slice(0, 50));
+    res.json(allNotifications.slice(0, 50));
   } catch (e) {
     console.error('Notifications failed', e);
     res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
+// Create new notification
+app.post('/api/notifications', async (req, res) => {
+  try {
+    const { title, message, type, dept, sender_dept, sender_user, priority, action_required, action_url, metadata } = req.body;
+    
+    if (!title || !message) {
+      return res.status(400).json({ error: 'Title and message are required' });
+    }
+
+    const result = await auditsDb.query(`
+      INSERT INTO notifications (title, message, type, dept, sender_dept, sender_user, priority, action_required, action_url, metadata)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING id, created_at
+    `, [title, message, type || 'info', dept, sender_dept, sender_user, priority || 'normal', action_required || false, action_url, metadata]);
+
+    const notification = result.rows[0];
+    
+    // Log the activity
+    await logActivity(`Notification sent to ${dept || 'all departments'}: ${title}`, sender_dept);
+    
+    res.json({
+      success: true,
+      notification: {
+        id: notification.id,
+        title,
+        message,
+        type: type || 'info',
+        dept,
+        created_at: notification.created_at
+      }
+    });
+  } catch (e) {
+    console.error('Failed to create notification:', e);
+    res.status(500).json({ error: 'Failed to create notification' });
+  }
+});
+
+// Mark notification as read
+app.put('/api/notifications/:id/read', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    await auditsDb.query(`
+      UPDATE notifications 
+      SET is_read = true, read_at = now() 
+      WHERE id = $1
+    `, [id]);
+    
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Failed to mark notification as read:', e);
+    res.status(500).json({ error: 'Failed to mark notification as read' });
+  }
+});
+
+// Get notifications count (unread)
+app.get('/api/notifications/count', async (req, res) => {
+  try {
+    const result = await auditsDb.query(`
+      SELECT COUNT(*) as count 
+      FROM notifications 
+      WHERE is_read = false
+    `);
+    
+    res.json({ count: parseInt(result.rows[0].count) || 0 });
+  } catch (e) {
+    console.error('Failed to get notifications count:', e);
+    res.status(500).json({ error: 'Failed to get notifications count' });
   }
 });
 

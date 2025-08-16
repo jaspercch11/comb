@@ -204,7 +204,7 @@ function openActivityModal(activity){
       <p><strong>Message:</strong> ${activity.message || '—'}</p>
     </div>
     <div class="modal-buttons">
-      <button type="button" class="upload-btn">Notify Department</button>
+      <button type="button" class="upload-btn" id="notifyBtn">Notify Department</button>
     </div>
   `;
   overlay.appendChild(modal);
@@ -214,6 +214,56 @@ function openActivityModal(activity){
   modal.querySelector('.close-btn').onclick = close;
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
   document.addEventListener('keydown', function onKey(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', onKey); } });
+  
+  // Add notification functionality
+  const notifyBtn = modal.querySelector('#notifyBtn');
+  notifyBtn.addEventListener('click', async () => {
+    try {
+      notifyBtn.disabled = true;
+      notifyBtn.textContent = 'Sending...';
+      
+      const notificationData = {
+        title: `Activity Alert: ${activity.dept || 'Department'}`,
+        message: `New activity in ${activity.dept || 'your department'}: ${activity.message}`,
+        type: 'audit',
+        dept: activity.dept,
+        sender_dept: 'Compliance & Risk Management',
+        sender_user: 'Jasper John Dreo',
+        priority: 'normal',
+        action_required: false
+      };
+      
+      const response = await fetch('http://localhost:3000/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(notificationData)
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          notifyBtn.textContent = '✅ Sent!';
+          notifyBtn.style.background = '#4CAF50';
+          setTimeout(() => {
+            close();
+          }, 1500);
+        } else {
+          throw new Error(result.error || 'Failed to send notification');
+        }
+      } else {
+        throw new Error('Failed to send notification');
+      }
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      notifyBtn.textContent = '❌ Failed';
+      notifyBtn.style.background = '#f44336';
+      setTimeout(() => {
+        notifyBtn.disabled = false;
+        notifyBtn.textContent = 'Notify Department';
+        notifyBtn.style.background = '';
+      }, 2000);
+    }
+  });
 }
 
 /* ============================================

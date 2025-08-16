@@ -40,15 +40,19 @@ const auditsDb = pool;
     await pool.query(`CREATE TABLE IF NOT EXISTS activities (
       id SERIAL PRIMARY KEY,
       at TIMESTAMPTZ DEFAULT now(),
-      message TEXT NOT NULL
+      message TEXT NOT NULL,
+      dept TEXT
     )`);
+    await pool.query(`ALTER TABLE activities ADD COLUMN IF NOT EXISTS dept TEXT`);
   } catch (e) {
     console.warn('ensureSchema skipped or failed:', e?.message || e);
   }
 })();
 
-async function logActivity(message) {
-  try { await pool.query('INSERT INTO activities (message) VALUES ($1)', [String(message || '').slice(0, 500)]); } catch (e) { /* no-op */ }
+async function logActivity(message, dept = null) {
+  try {
+    await pool.query('INSERT INTO activities (message, dept) VALUES ($1, $2)', [String(message || '').slice(0, 500), dept ? String(dept).slice(0, 200) : null]);
+  } catch (e) { /* no-op */ }
 }
 // ---- Helpers used in risk routes ----
 async function computeRiskProgress(riskId) {
@@ -282,9 +286,9 @@ app.post("/audits", async (req, res) => {
       const d = row.audit_date ? new Date(row.audit_date) : null;
       const dateStr = d && !isNaN(d.getTime()) ? d.toISOString().slice(0,10) : (row.audit_date || '');
       if (st === 'scheduled') {
-        await logActivity(`${actor} scheduled audit ${row.audit_name || ''} ${dateStr}`.trim());
+        await logActivity(`(${actor}) scheduled audit ${row.audit_name || ''} ${dateStr}`.trim(), row.dept_audited || null);
       } else {
-        await logActivity(`${actor} created new audit for ${row.dept_audited || '—'}`);
+        await logActivity(`${actor} created new audit for ${row.dept_audited || '—'}`, row.dept_audited || null);
       }
     } catch(_){ }
     res.json({ success: true, audit: result.rows[0] });
@@ -310,9 +314,9 @@ app.put('/audits/:id', async (req, res) => {
       const d = row.audit_date ? new Date(row.audit_date) : null;
       const dateStr = d && !isNaN(d.getTime()) ? d.toISOString().slice(0,10) : (row.audit_date || '');
       if (st === 'scheduled') {
-        await logActivity(`${actor} scheduled audit ${row.audit_name || ''} ${dateStr}`.trim());
+        await logActivity(`(${actor}) scheduled audit ${row.audit_name || ''} ${dateStr}`.trim(), row.dept_audited || null);
       } else {
-        await logActivity(`${actor} updated audit ${row.audit_name || id} to ${row.status}`);
+        await logActivity(`${actor} updated audit ${row.audit_name || id} to ${row.status}`, row.dept_audited || null);
       }
     } catch(_){ }
     res.json({ success: true, audit: result.rows[0] });
@@ -912,7 +916,7 @@ app.put('/api/risks/:id/tasks', async (req, res) => {
 app.get('/activities', async (req, res) => {
   const limit = Math.min(Math.max(parseInt(req.query.limit || '10', 10) || 10, 1), 50);
   try {
-    const rows = (await pool.query('SELECT id, at, message FROM activities ORDER BY at DESC, id DESC LIMIT $1', [limit])).rows;
+    const rows = (await pool.query('SELECT id, at, message, dept FROM activities ORDER BY at DESC, id DESC LIMIT $1', [limit])).rows;
     res.json(rows);
   } catch (e) {
     console.error('Fetch activities failed', e);

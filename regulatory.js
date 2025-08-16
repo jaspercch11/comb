@@ -144,7 +144,9 @@
       const container = inner.parentElement;
       const containerWidth = container ? container.clientWidth : 0;
       const dynamicWidth = Math.max(containerWidth, departments.length * perCategoryWidth);
-      inner.style.width = dynamicWidth + 'px';
+      inner.style.width = '100%';
+      const canvases = inner.querySelectorAll('canvas');
+      canvases.forEach(cv => { cv.style.width = dynamicWidth + 'px'; });
     }
 
     const ctxC = document.getElementById('compliantChart')?.getContext('2d');
@@ -325,7 +327,9 @@
     const containerWidth = container ? container.clientWidth : 0;
     const perCategoryWidth = 110;
     const dynamicWidth = Math.max(containerWidth, labels.length * perCategoryWidth);
-    inner.style.width = dynamicWidth + 'px';
+    inner.style.width = '100%';
+    const canvases = inner.querySelectorAll('canvas');
+    canvases.forEach(cv => { cv.style.width = dynamicWidth + 'px'; });
   });
 })();
 

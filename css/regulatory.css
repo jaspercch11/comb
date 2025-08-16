@@ -535,7 +535,7 @@ header {
 .task-list { flex: 1 1 auto; overflow-y: auto; max-height: none; }
 
 /* Ensure chart fills the fixed-height panel */
-.chart-inner { height: 100%; width: max(100%, 900px); }
+.chart-inner { height: auto; width: 100%; display: inline-block; }
 .chart-scroll { min-height: 0; overflow: auto; }
 
 /* Align header spacing between panels */

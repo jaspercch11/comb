@@ -400,10 +400,20 @@
             };
             const res = await fetch('/api/risks', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
             if(!res.ok) throw new Error('Failed to send');
-            await fetch(`/api/incidents/${incident.incident_id}/status`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status: 'Investigating' }) });
+            const created = await res.json();
+            await fetch(`/api/incidents/${incident.incident_id}`, {
+              method:'PUT', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({
+                incident_type: incident.incident_type,
+                date_reported: incident.date_reported,
+                status: 'Investigating',
+                severity_level: incident.severity_level,
+                risk_id: created.id
+              })
+            });
             await loadIncidents();
             renderIncidents();
-            alert('Sent to Risk Register. Status set to Investigating.');
+            alert('Sent to Risk Register');
             closeViewModal();
           }catch(err){
             console.error(err);

@@ -37,11 +37,19 @@ const auditsDb = pool;
   try {
     await pool.query(`ALTER TABLE risks ADD COLUMN IF NOT EXISTS created_via TEXT`);
     await pool.query(`ALTER TABLE risks ADD COLUMN IF NOT EXISTS hidden_in_findings BOOLEAN DEFAULT FALSE`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS activities (
+      id SERIAL PRIMARY KEY,
+      at TIMESTAMPTZ DEFAULT now(),
+      message TEXT NOT NULL
+    )`);
   } catch (e) {
     console.warn('ensureSchema skipped or failed:', e?.message || e);
   }
 })();
 
+async function logActivity(message) {
+  try { await pool.query('INSERT INTO activities (message) VALUES ($1)', [String(message || '').slice(0, 500)]); } catch (e) { /* no-op */ }
+}
 // ---- Helpers used in risk routes ----
 async function computeRiskProgress(riskId) {
   const { rows } = await auditsDb.query(
@@ -267,6 +275,8 @@ app.post("/audits", async (req, res) => {
     const result = await pool.query(insertQuery, [
       audit_id, audit_name, dept_audited, auditor, audit_date, status,
     ]);
+    const actor = (req.body.actor || 'User').toString();
+    try { await logActivity(`${actor} created new audit for ${result.rows[0].dept_audited || '—'}`); } catch(_){}
     res.json({ success: true, audit: result.rows[0] });
   } catch (error) {
     console.error("Insert audit error:", error);
@@ -283,6 +293,9 @@ app.put('/audits/:id', async (req, res) => {
       [id, audit_name, dept_audited, auditor, audit_date, status]
     );
     if (!result.rowCount) return res.status(404).json({ success: false, error: 'Not found' });
+    const actor = (req.body.actor || 'User').toString();
+    const row = result.rows[0];
+    try { await logActivity(`${actor} updated audit ${row.audit_name || id} to ${row.status}`); } catch(_){}
     res.json({ success: true, audit: result.rows[0] });
   } catch (e) {
     console.error('Update audit error:', e);
@@ -876,3 +889,14 @@ app.put('/api/risks/:id/tasks', async (req, res) => {
 });
 
 // DELETE risk and its tasks
+
+app.get('/activities', async (req, res) => {
+  const limit = Math.min(Math.max(parseInt(req.query.limit || '10', 10) || 10, 1), 50);
+  try {
+    const rows = (await pool.query('SELECT id, at, message FROM activities ORDER BY at DESC, id DESC LIMIT $1', [limit])).rows;
+    res.json(rows);
+  } catch (e) {
+    console.error('Fetch activities failed', e);
+    res.status(500).json({ error: 'Failed to fetch activities' });
+  }
+});

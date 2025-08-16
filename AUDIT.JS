@@ -161,6 +161,29 @@ async function loadChart() {
   }
 }
 
+async function loadActivities(){
+  try{
+    const res = await fetch('http://localhost:3000/activities?limit=6');
+    const items = await res.json();
+    const container = document.querySelector('.recent-activity');
+    if (!container) return;
+    // remove old items (keep heading)
+    container.querySelectorAll('.activity-item').forEach(el=> el.remove());
+    (items || []).forEach(it => {
+      const wrap = document.createElement('div');
+      wrap.className = 'activity-item';
+      const when = new Date(it.at);
+      const timeEl = document.createElement('time');
+      timeEl.innerHTML = `${when.toLocaleDateString()}<br>${when.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      const p = document.createElement('p');
+      p.textContent = it.message;
+      wrap.appendChild(timeEl);
+      wrap.appendChild(p);
+      container.appendChild(wrap);
+    });
+  }catch(err){ /* no-op */ }
+}
+
 /* ============================================
    >>> FORM SUBMISSION HANDLER <<<
    ============================================ */
@@ -175,6 +198,7 @@ document.getElementById('auditForm').addEventListener('submit', async function(e
     auditor: this.auditor.value.trim(),
     audit_date: this.auditDate.value,
     status: this.status.value.trim().toLowerCase(), // normalized to lowercase for case-insensitive
+    actor: 'john'
   };
 
   try {
@@ -360,4 +384,5 @@ function wireAuditInteractions(){
 loadAudits();
 loadChart();
 wireAuditInteractions();
+loadActivities();
 

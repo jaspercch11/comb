@@ -14,13 +14,22 @@
     const rows = await res.json();
     const nowMs = Date.now();
     const normalize = (r)=>{
-      const nextReview = r.next_review_date || r.next_review || null;
+      const nextReview = r.next_review || r.next_review_date || null;
       const lastReview = r.last_review || r.last_accessed_date || null;
       const dept = r.department || r.dept_responsible || r.dept || '';
       const name = r.name || r.regulation_name || r.title || '—';
+      const riskLevel = r.risk_level || 'Medium';
       const daysUntil = nextReview ? Math.floor((new Date(nextReview).getTime() - nowMs) / (1000*60*60*24)) : null;
       const status = daysUntil !== null && daysUntil < 0 ? 'non-compliant' : 'compliant';
-      return { name, department: dept, status, last_review: lastReview, next_review: nextReview };
+      return { 
+        id: r.regulation_id, 
+        name, 
+        department: dept, 
+        status, 
+        risk_level: riskLevel,
+        last_review: lastReview, 
+        next_review: nextReview 
+      };
     };
     return Array.isArray(rows) ? rows.map(normalize) : [];
   }
@@ -44,15 +53,15 @@
       
       tr.innerHTML = `
         <td>${r.name}</td>
-        <td>${r.department}</td>
+        <td>${r.department || 'Not Assigned'}</td>
         <td>${r.status}</td>
         <td><span class="${riskLevelClass}">${riskLevel}</span></td>
-        <td>${r.last_review ? new Date(r.last_review).toISOString().slice(0,10) : ''}</td>
-        <td>${r.next_review ? new Date(r.next_review).toISOString().slice(0,10) : ''}</td>
+        <td>${r.last_review ? new Date(r.last_review).toISOString().slice(0,10) : 'Not Reviewed'}</td>
+        <td>${r.next_review ? new Date(r.next_review).toISOString().slice(0,10) : 'Not Scheduled'}</td>
         <td>
           <div class="action-buttons">
-            <button class="btn-view" onclick="viewRegulation(${r.id || r.regulation_id})">👁️ View</button>
-            <button class="btn-edit" onclick="editRegulation(${r.id || r.regulation_id})">✏️ Edit</button>
+            <button class="btn-view" onclick="viewRegulation(${r.id})">👁️ View</button>
+            <button class="btn-edit" onclick="editRegulation(${r.id})">✏️ Edit</button>
           </div>
         </td>
       `;
@@ -377,30 +386,50 @@
   }
 
   // Regulation management functions
-  window.viewRegulation = function(id) {
-    // For now, show a simple view modal
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-      <div class="modal-header"><h3>View Regulation</h3><button class="modal-close">&times;</button></div>
-      <div class="modal-body">
-        <p><strong>Regulation ID:</strong> ${id}</p>
-        <p>This is a placeholder for the regulation view functionality.</p>
-        <p>In a full implementation, this would show detailed regulation information.</p>
-      </div>
-      <div class="modal-actions"><button class="btn btn-primary">Close</button></div>
-    `;
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    overlay.style.display = 'flex';
-    
-    const close = () => { try { document.body.removeChild(overlay); } catch(e){} };
-    modal.querySelector('.modal-close').onclick = close;
-    modal.querySelector('.btn').onclick = close;
-    overlay.addEventListener('click', (e) => { if(e.target === overlay) close(); });
-    document.addEventListener('keydown', function onKey(e) { if(e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } });
+  window.viewRegulation = async function(id) {
+    try {
+      // Fetch regulation details
+      const regResponse = await fetch(`${API}/api/regulations`);
+      const regulations = await regResponse.json();
+      const regulation = regulations.find(r => r.regulation_id == id);
+      
+      if (!regulation) {
+        alert('Regulation not found');
+        return;
+      }
+      
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      modal.innerHTML = `
+        <div class="modal-header"><h3>View Regulation</h3><button class="modal-close">&times;</button></div>
+        <div class="modal-body">
+          <p><strong>Regulation ID:</strong> ${regulation.regulation_id}</p>
+          <p><strong>Name:</strong> ${regulation.title || regulation.name}</p>
+          <p><strong>Department:</strong> ${regulation.department || 'Not Assigned'}</p>
+          <p><strong>Status:</strong> ${regulation.status || 'Active'}</p>
+          <p><strong>Risk Level:</strong> ${regulation.risk_level || 'Medium'}</p>
+          <p><strong>Last Review:</strong> ${regulation.last_review ? new Date(regulation.last_review).toISOString().slice(0,10) : 'Not Reviewed'}</p>
+          <p><strong>Next Review:</strong> ${regulation.next_review ? new Date(regulation.next_review).toISOString().slice(0,10) : 'Not Scheduled'}</p>
+          <p><strong>Description:</strong> ${regulation.description || 'No description available'}</p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+        </div>
+      `;
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+      overlay.style.display = 'flex';
+      
+      const close = () => { try { document.body.removeChild(overlay); } catch(e){} };
+      modal.querySelector('.modal-close').onclick = close;
+      overlay.addEventListener('click', (e) => { if(e.target === overlay) close(); });
+      document.addEventListener('keydown', function onKey(e) { if(e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } });
+    } catch (error) {
+      console.error('Error viewing regulation:', error);
+      alert('Error loading regulation details');
+    }
   };
 
   window.editRegulation = function(id) {
@@ -455,6 +484,10 @@
             </select>
           </div>
           <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Last Review Date:</label>
+            <input type="date" id="regLastReview" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+          </div>
+          <div style="margin-bottom: 15px;">
             <label style="display: block; font-weight: 600; margin-bottom: 5px;">Next Review Date:</label>
             <input type="date" id="regNextReview" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
           </div>
@@ -491,12 +524,13 @@
     const name = document.getElementById('regName').value;
     const department = document.getElementById('regDepartment').value;
     const riskLevel = document.getElementById('regRiskLevel').value;
+    const lastReview = document.getElementById('regLastReview').value;
     const nextReview = document.getElementById('regNextReview').value;
     
-          if (!name || !department || !nextReview) {
-        alert('Please fill in all required fields');
-        return;
-      }
+    if (!name || !department || !nextReview) {
+      alert('Please fill in all required fields');
+      return;
+    }
     
     try {
       // This would typically send data to your backend API

@@ -261,16 +261,12 @@ function openAuditEditModal(audit){
       <h3>✏️ Edit Audit</h3>
       <button class="close-btn" type="button">✕</button>
     </div>
+    <div>
+      <p><strong>Name:</strong> ${audit.audit_name || ''}</p>
+      <p><strong>Department:</strong> ${audit.dept_audited || ''}</p>
+      <p><strong>Auditor:</strong> ${audit.auditor || ''}</p>
+    </div>
     <form id="auditEditForm" style="margin-top: 8px;">
-      <label><span>Name</span>
-        <input type="text" name="audit_name" value="${audit.audit_name || ''}" required />
-      </label>
-      <label><span>Department</span>
-        <input type="text" name="dept_audited" value="${audit.dept_audited || ''}" required />
-      </label>
-      <label><span>Auditor</span>
-        <input type="text" name="auditor" value="${audit.auditor || ''}" required />
-      </label>
       <label><span>Date</span>
         <input type="date" name="audit_date" value="${audit.audit_date ? new Date(audit.audit_date).toISOString().slice(0,10) : ''}" required />
       </label>
@@ -298,9 +294,9 @@ function openAuditEditModal(audit){
     e.preventDefault();
     const form = e.target;
     const payload = {
-      audit_name: form.audit_name.value.trim(),
-      dept_audited: form.dept_audited.value.trim(),
-      auditor: form.auditor.value.trim(),
+      audit_name: audit.audit_name || '',
+      dept_audited: audit.dept_audited || '',
+      auditor: audit.auditor || '',
       audit_date: form.audit_date.value,
       status: form.status.value.trim().toLowerCase(),
     };

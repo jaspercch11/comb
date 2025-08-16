@@ -119,70 +119,59 @@
   }
 
   async function renderChart(){
-    const labels = ['Audits','Incidents','Documents','Regulations','Risks'];
     async function fetchArray(url){
       try{
         const res = await fetch(url);
         if(!res.ok) return [];
         const data = await res.json();
         return Array.isArray(data) ? data : [];
-      }catch(_){
-        return [];
-      }
+      }catch(_){ return []; }
     }
 
-    const [audits, incidents, documents, regs, risks] = await Promise.all([
-      fetchArray(`${API}/audits`),
-      fetchArray(`${API}/api/incidents`),
-      fetchArray(`${API}/documents`),
-      fetchRegs(),
-      fetchArray(`${API}/api/risks`)
-    ]);
-
+    const incidents = await fetchArray(`${API}/api/incidents`);
     const norm = (s)=> String(s||'').toLowerCase().trim();
-    const filterByDept = (arr, getter)=> currentDeptFilter ? arr.filter(x=> norm(getter(x)) === norm(currentDeptFilter)) : arr;
+    const filteredInc = currentDeptFilter ? incidents.filter(i=> norm(i.department)===norm(currentDeptFilter)) : incidents;
 
-    const counts = [
-      filterByDept(audits, a=>a.dept_audited).length,
-      filterByDept(incidents, i=>i.department).length,
-      filterByDept(documents, d=>d.owner_dept).length,
-      filterByDept(regs, r=>r.department).length,
-      filterByDept(risks, r=>r.dept).length
-    ];
+    const deptSet = new Set(filteredInc.map(i=> i.department).filter(Boolean));
+    const departments = Array.from(deptSet).sort();
 
-    const ctx = document.getElementById('complianceChart').getContext('2d');
-    if (window._regComplianceChart) {
-      window._regComplianceChart.destroy();
-    }
+    const compliantPerDept = departments.map(d=> filteredInc.filter(i=> i.department===d && norm(i.status)==='resolved').length);
+    const nonCompliantPerDept = departments.map(d=> filteredInc.filter(i=> i.department===d && norm(i.status)!=='resolved').length);
 
-    const perCategoryWidth = 110; // px/bar label area
+    const perCategoryWidth = 110;
     const inner = document.querySelector('.chart-inner');
     if (inner) {
       const container = inner.parentElement;
       const containerWidth = container ? container.clientWidth : 0;
-      const dynamicWidth = Math.max(containerWidth, labels.length * perCategoryWidth);
+      const dynamicWidth = Math.max(containerWidth, departments.length * perCategoryWidth);
       inner.style.width = dynamicWidth + 'px';
     }
 
-    window._regComplianceChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: currentDeptFilter ? `Records (${currentDeptFilter})` : 'System Records',
-            data: counts,
-            backgroundColor: ['#42a5f5','#66bb6a','#ffa726','#ab47bc','#ef5350']
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-        plugins: { legend: { position: 'top' } }
-      }
-    });
+    const ctxC = document.getElementById('compliantChart')?.getContext('2d');
+    const ctxN = document.getElementById('nonCompliantChart')?.getContext('2d');
+    if (window._regCompliantChart) window._regCompliantChart.destroy();
+    if (window._regNonCompliantChart) window._regNonCompliantChart.destroy();
+
+    if (ctxC) {
+      window._regCompliantChart = new Chart(ctxC, {
+        type: 'bar',
+        data: {
+          labels: departments,
+          datasets: [ { label: 'Compliant', data: compliantPerDept, backgroundColor: '#4caf50' } ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { position: 'top' } } }
+      });
+    }
+    if (ctxN) {
+      window._regNonCompliantChart = new Chart(ctxN, {
+        type: 'bar',
+        data: {
+          labels: departments,
+          datasets: [ { label: 'Non-Compliant', data: nonCompliantPerDept, backgroundColor: '#f44336' } ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }, plugins: { legend: { position: 'top' } } }
+      });
+    }
   }
 
   function renderPending(rows){
@@ -331,7 +320,7 @@
   window.addEventListener('resize', ()=>{
     const inner = document.querySelector('.chart-inner');
     if (!inner) return;
-    const labels = (window._regComplianceChart && window._regComplianceChart.data && window._regComplianceChart.data.labels) || [];
+    const labels = (window._regCompliantChart && window._regCompliantChart.data && window._regCompliantChart.data.labels) || [];
     const container = inner.parentElement;
     const containerWidth = container ? container.clientWidth : 0;
     const perCategoryWidth = 110;

@@ -119,7 +119,6 @@
   }
 
   async function renderChart(){
-    const labels = ['Audits','Incidents','Documents','Regulations','Risks'];
     async function fetchArray(url){
       try{
         const res = await fetch(url);
@@ -131,24 +130,37 @@
       }
     }
 
-    const [audits, incidents, documents, regs, risks] = await Promise.all([
-      fetchArray(`${API}/audits`),
-      fetchArray(`${API}/api/incidents`),
-      fetchArray(`${API}/documents`),
-      fetchRegs(),
-      fetchArray(`${API}/api/risks`)
-    ]);
+    // Fetch risks data to get department-based risk counts
+    const risks = await fetchArray(`${API}/api/risks`);
+    
+    // Group risks by department and count them
+    const deptRiskCounts = {};
+    risks.forEach(risk => {
+      const dept = risk.dept || 'Unknown Department';
+      if (!deptRiskCounts[dept]) {
+        deptRiskCounts[dept] = 0;
+      }
+      deptRiskCounts[dept]++;
+    });
 
-    const norm = (s)=> String(s||'').toLowerCase().trim();
-    const filterByDept = (arr, getter)=> currentDeptFilter ? arr.filter(x=> norm(getter(x)) === norm(currentDeptFilter)) : arr;
+    // Apply department filter if set
+    if (currentDeptFilter) {
+      const filteredDeptRiskCounts = {};
+      if (deptRiskCounts[currentDeptFilter]) {
+        filteredDeptRiskCounts[currentDeptFilter] = deptRiskCounts[currentDeptFilter];
+      }
+      deptRiskCounts = filteredDeptRiskCounts;
+    }
 
-    const counts = [
-      filterByDept(audits, a=>a.dept_audited).length,
-      filterByDept(incidents, i=>i.department).length,
-      filterByDept(documents, d=>d.owner_dept).length,
-      filterByDept(regs, r=>r.department).length,
-      filterByDept(risks, r=>r.dept).length
-    ];
+    // Convert to arrays for chart
+    const labels = Object.keys(deptRiskCounts);
+    const counts = Object.values(deptRiskCounts);
+
+    // If no departments found, show a default message
+    if (labels.length === 0) {
+      labels.push('No Departments');
+      counts.push(0);
+    }
 
     const ctx = document.getElementById('complianceChart').getContext('2d');
     if (window._regComplianceChart) {
@@ -170,17 +182,40 @@
         labels,
         datasets: [
           {
-            label: currentDeptFilter ? `Records (${currentDeptFilter})` : 'System Records',
+            label: currentDeptFilter ? `Risks (${currentDeptFilter})` : 'Risk Count by Department',
             data: counts,
-            backgroundColor: ['#42a5f5','#66bb6a','#ffa726','#ab47bc','#ef5350']
+            backgroundColor: '#ef5350',
+            borderColor: '#d32f2f',
+            borderWidth: 1
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-        plugins: { legend: { position: 'top' } }
+        scales: { 
+          y: { 
+            beginAtZero: true, 
+            ticks: { precision: 0 },
+            title: {
+              display: true,
+              text: 'Number of Risks'
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Departments'
+            }
+          }
+        },
+        plugins: { 
+          legend: { position: 'top' },
+          title: {
+            display: true,
+            text: currentDeptFilter ? `Risk Distribution - ${currentDeptFilter}` : 'Risk Distribution by Department'
+          }
+        }
       }
     });
   }

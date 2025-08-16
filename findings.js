@@ -621,6 +621,58 @@
 			];
 		}
 
+		// Heatmap functionality
+		const categoryFilter = document.getElementById('categoryFilter');
+		
+		// Sample risk data with impact and likelihood scores
+		let heatmapRisks = [
+			{ id: 1, name: 'Data Breach Risk', impact: 5, likelihood: 4, category: 'Compliance', dept: 'IT' },
+			{ id: 2, name: 'Supply Chain Disruption', impact: 4, likelihood: 3, category: 'Operational', dept: 'Operations' },
+			{ id: 3, name: 'Phishing Attack', impact: 3, likelihood: 5, category: 'Compliance', dept: 'IT' },
+			{ id: 4, name: 'Budget Overrun', impact: 3, likelihood: 2, category: 'Financial', dept: 'Finance' },
+			{ id: 5, name: 'Regulatory Non-compliance', impact: 5, likelihood: 2, category: 'Compliance', dept: 'Legal' },
+			{ id: 6, name: 'Employee Turnover', impact: 2, likelihood: 4, category: 'Operational', dept: 'HR' },
+			{ id: 7, name: 'Market Competition', impact: 4, likelihood: 1, category: 'Strategic', dept: 'Strategy' },
+			{ id: 8, name: 'Technology Failure', impact: 4, likelihood: 3, category: 'Operational', dept: 'IT' }
+		];
+
+		// Function to render the heatmap
+		function renderHeatmap(filter = 'all') {
+			// Clear all risk containers
+			document.querySelectorAll('.risk-container').forEach(container => {
+				container.innerHTML = '';
+			});
+
+			// Filter risks if needed
+			const filteredRisks = filter === 'all' 
+				? heatmapRisks 
+				: heatmapRisks.filter(risk => risk.category === filter);
+
+			// Add risks to their positions
+			filteredRisks.forEach(risk => {
+				const container = document.querySelector(`.heatmap-cell[data-impact="${risk.impact}"][data-likelihood="${risk.likelihood}"] .risk-container`);
+				if (container) {
+					const riskEl = document.createElement('div');
+					riskEl.className = 'risk-item';
+					riskEl.textContent = risk.name;
+					riskEl.dataset.riskId = risk.id;
+					riskEl.title = `${risk.name} - ${risk.dept} (Impact: ${risk.impact}, Likelihood: ${risk.likelihood})`;
+					riskEl.addEventListener('click', () => showRiskDetails(risk.id));
+					
+					container.appendChild(riskEl);
+				}
+			});
+		}
+
+		// Function to show risk details (placeholder for now)
+		function showRiskDetails(riskId) {
+			const risk = heatmapRisks.find(r => r.id === riskId);
+			if (!risk) return;
+
+			// For now, just show an alert. In a full implementation, this would open a modal
+			alert(`Risk: ${risk.name}\nDepartment: ${risk.dept}\nCategory: ${risk.category}\nImpact: ${risk.impact}\nLikelihood: ${risk.likelihood}\nRisk Score: ${risk.impact * risk.likelihood}`);
+		}
+
 		// Function to fetch and display all risks in the table
 		async function loadRisks() {
 			const res = await fetch('http://localhost:3000/api/risks');
@@ -675,5 +727,17 @@
 			// On page load, display all risks for this form page
 			window.onload = loadRisks;
 		}
+
+		// Initialize heatmap functionality
+		if (categoryFilter) {
+			categoryFilter.addEventListener('change', (e) => {
+				renderHeatmap(e.target.value);
+			});
+		}
+
+		// Initialize heatmap on page load
+		document.addEventListener('DOMContentLoaded', () => {
+			renderHeatmap();
+		});
 
 	})();

@@ -40,6 +40,162 @@
     <div class="bell">🔔</div>
   </div>
 
+  <!-- Risk Heatmap Section -->
+  <div class="card heatmap-card">
+    <div class="card-header">
+      <h2>Risk Heatmap</h2>
+      <div class="actions">
+        <select id="categoryFilter" class="filter-select">
+          <option value="all">All Categories</option>
+          <option value="Financial">Financial</option>
+          <option value="Operational">Operational</option>
+          <option value="Strategic">Strategic</option>
+          <option value="Compliance">Compliance</option>
+          <option value="Reputational">Reputational</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="heatmap-container">
+      <div class="heatmap-grid">
+        <!-- Likelihood Header -->
+        <div class="heatmap-header-row">
+          <div class="impact-label">Impact</div>
+          <div class="likelihood-label">Very Low (1)</div>
+          <div class="likelihood-label">Low (2)</div>
+          <div class="likelihood-label">Medium (3)</div>
+          <div class="likelihood-label">High (4)</div>
+          <div class="likelihood-label">Very High (5)</div>
+        </div>
+        
+        <!-- Heatmap Grid -->
+        <div id="heatmapGrid" class="heatmap-grid-body">
+          <!-- Row 1 - Very High Impact -->
+          <div class="impact-label">Very High (5)</div>
+          <div class="heatmap-cell low-risk" data-impact="5" data-likelihood="1">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell medium-risk" data-impact="5" data-likelihood="2">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell high-risk" data-impact="5" data-likelihood="3">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell very-high-risk" data-impact="5" data-likelihood="4">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell critical-risk" data-impact="5" data-likelihood="5">
+            <div class="risk-container"></div>
+          </div>
+
+          <!-- Row 2 - High Impact -->
+          <div class="impact-label">High (4)</div>
+          <div class="heatmap-cell low-risk" data-impact="4" data-likelihood="1">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell medium-risk" data-impact="4" data-likelihood="2">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell moderate-risk" data-impact="4" data-likelihood="3">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell high-risk" data-impact="4" data-likelihood="4">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell very-high-risk" data-impact="4" data-likelihood="5">
+            <div class="risk-container"></div>
+          </div>
+
+          <!-- Row 3 - Medium Impact -->
+          <div class="impact-label">Medium (3)</div>
+          <div class="heatmap-cell low-risk" data-impact="3" data-likelihood="1">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell low-risk" data-impact="3" data-likelihood="2">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell medium-risk" data-impact="3" data-likelihood="3">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell moderate-risk" data-impact="3" data-likelihood="4">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell high-risk" data-impact="3" data-likelihood="5">
+            <div class="risk-container"></div>
+          </div>
+
+          <!-- Row 4 - Low Impact -->
+          <div class="impact-label">Low (2)</div>
+          <div class="heatmap-cell minimal-risk" data-impact="2" data-likelihood="1">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell low-risk" data-impact="2" data-likelihood="2">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell low-risk" data-impact="2" data-likelihood="3">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell medium-risk" data-impact="2" data-likelihood="4">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell moderate-risk" data-impact="2" data-likelihood="5">
+            <div class="risk-container"></div>
+          </div>
+
+          <!-- Row 5 - Very Low Impact -->
+          <div class="impact-label">Very Low (1)</div>
+          <div class="heatmap-cell minimal-risk" data-impact="1" data-likelihood="1">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell minimal-risk" data-impact="1" data-likelihood="2">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell minimal-risk" data-impact="1" data-likelihood="3">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell low-risk" data-impact="1" data-likelihood="4">
+            <div class="risk-container"></div>
+          </div>
+          <div class="heatmap-cell low-risk" data-impact="1" data-likelihood="5">
+            <div class="risk-container"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Legend -->
+      <div class="heatmap-legend">
+        <div class="legend-item">
+          <span class="legend-color critical-risk"></span>
+          <span>Critical (20-25)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color very-high-risk"></span>
+          <span>Very High (15-19)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color high-risk"></span>
+          <span>High (12-14)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color moderate-risk"></span>
+          <span>Moderate (9-11)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color medium-risk"></span>
+          <span>Medium (6-8)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color low-risk"></span>
+          <span>Low (3-5)</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color minimal-risk"></span>
+          <span>Minimal (1-2)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-header">
       <h2>Risk Register</h2>

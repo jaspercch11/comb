@@ -659,7 +659,11 @@ app.delete('/api/risks/:id', async (req, res) => {
   const { id } = req.params;
   try {
     await auditsDb.query('BEGIN');
+    // Unlink incidents referencing this risk to avoid FK violation
+    await auditsDb.query('UPDATE incidents SET risk_id = NULL WHERE risk_id = $1', [id]);
+    // Delete tasks first due to FK
     await auditsDb.query('DELETE FROM risk_tasks WHERE risk_id = $1', [id]);
+    // Delete the risk
     const out = await auditsDb.query('DELETE FROM risks WHERE risk_id = $1 RETURNING risk_id', [id]);
     await auditsDb.query('COMMIT');
 

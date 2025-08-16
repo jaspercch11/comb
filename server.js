@@ -276,7 +276,17 @@ app.post("/audits", async (req, res) => {
       audit_id, audit_name, dept_audited, auditor, audit_date, status,
     ]);
     const actor = (req.body.actor || 'User').toString();
-    try { await logActivity(`${actor} created new audit for ${result.rows[0].dept_audited || '—'}`); } catch(_){}
+    try {
+      const row = result.rows[0];
+      const st = String(row.status || '').toLowerCase();
+      const d = row.audit_date ? new Date(row.audit_date) : null;
+      const dateStr = d && !isNaN(d.getTime()) ? d.toISOString().slice(0,10) : (row.audit_date || '');
+      if (st === 'scheduled') {
+        await logActivity(`${actor} scheduled audit ${row.audit_name || ''} ${dateStr}`.trim());
+      } else {
+        await logActivity(`${actor} created new audit for ${row.dept_audited || '—'}`);
+      }
+    } catch(_){ }
     res.json({ success: true, audit: result.rows[0] });
   } catch (error) {
     console.error("Insert audit error:", error);
@@ -295,7 +305,16 @@ app.put('/audits/:id', async (req, res) => {
     if (!result.rowCount) return res.status(404).json({ success: false, error: 'Not found' });
     const actor = (req.body.actor || 'User').toString();
     const row = result.rows[0];
-    try { await logActivity(`${actor} updated audit ${row.audit_name || id} to ${row.status}`); } catch(_){}
+    try {
+      const st = String(row.status || '').toLowerCase();
+      const d = row.audit_date ? new Date(row.audit_date) : null;
+      const dateStr = d && !isNaN(d.getTime()) ? d.toISOString().slice(0,10) : (row.audit_date || '');
+      if (st === 'scheduled') {
+        await logActivity(`${actor} scheduled audit ${row.audit_name || ''} ${dateStr}`.trim());
+      } else {
+        await logActivity(`${actor} updated audit ${row.audit_name || id} to ${row.status}`);
+      }
+    } catch(_){ }
     res.json({ success: true, audit: result.rows[0] });
   } catch (e) {
     console.error('Update audit error:', e);

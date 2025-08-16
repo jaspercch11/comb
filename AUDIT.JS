@@ -198,7 +198,7 @@ document.getElementById('auditForm').addEventListener('submit', async function(e
     auditor: this.auditor.value.trim(),
     audit_date: this.auditDate.value,
     status: this.status.value.trim().toLowerCase(), // normalized to lowercase for case-insensitive
-    actor: 'john'
+    actor: this.auditor.value.trim() || 'User'
   };
 
   try {
@@ -323,6 +323,7 @@ function openAuditEditModal(audit){
       auditor: audit.auditor || '',
       audit_date: form.audit_date.value,
       status: form.status.value.trim().toLowerCase(),
+      actor: (audit.auditor || 'User')
     };
     try{
       const resp = await fetch(`http://localhost:3000/audits/${encodeURIComponent(audit.audit_id)}`, {
@@ -331,6 +332,7 @@ function openAuditEditModal(audit){
       const result = await resp.json();
       if(!resp.ok || !result.success){ throw new Error(result.error || 'Failed'); }
       await loadAudits();
+      await loadActivities();
       close();
     }catch(err){
       alert('Failed to update audit');
@@ -385,4 +387,3 @@ loadAudits();
 loadChart();
 wireAuditInteractions();
 loadActivities();
-

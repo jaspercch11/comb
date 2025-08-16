@@ -74,15 +74,20 @@
             </div>
 
             <section class="table">
-                <h2>Active Regulations</h2>
+                <div class="table-header">
+                    <h2>Active Regulations</h2>
+                    <button id="addRegulationBtn" class="btn btn-primary">➕ Add New Regulation</button>
+                </div>
                 <table>
                     <thead>
                         <tr>
                             <th>Regulation Name</th>
                             <th>Department</th>
                             <th>Status</th>
+                            <th>Risk Level</th>
                             <th>Last Review</th>
                             <th>Next Review</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="regsBody"></tbody>

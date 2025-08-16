@@ -199,11 +199,56 @@ header {
             border-collapse: collapse;
         }
 
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .table-header h2 {
+            margin: 0;
+        }
+
         .table th,
         .table td {
             border: 1px solid #ccc;
             padding: 10px;
             text-align: center;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .btn-view {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn-edit {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn-view:hover {
+            background: #0056b3;
+        }
+
+        .btn-edit:hover {
+            background: #1e7e34;
         }
 
         .low {

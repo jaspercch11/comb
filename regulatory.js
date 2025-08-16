@@ -39,12 +39,22 @@
     regsBody.innerHTML='';
     rows.forEach(r=>{
       const tr=document.createElement('tr');
+      const riskLevel = r.risk_level || 'Medium';
+      const riskLevelClass = riskLevel.toLowerCase();
+      
       tr.innerHTML = `
         <td>${r.name}</td>
         <td>${r.department}</td>
         <td>${r.status}</td>
+        <td><span class="${riskLevelClass}">${riskLevel}</span></td>
         <td>${r.last_review ? new Date(r.last_review).toISOString().slice(0,10) : ''}</td>
         <td>${r.next_review ? new Date(r.next_review).toISOString().slice(0,10) : ''}</td>
+        <td>
+          <div class="action-buttons">
+            <button class="btn-view" onclick="viewRegulation(${r.id || r.regulation_id})">👁️ View</button>
+            <button class="btn-edit" onclick="editRegulation(${r.id || r.regulation_id})">✏️ Edit</button>
+          </div>
+        </td>
       `;
       regsBody.appendChild(tr);
     });
@@ -343,6 +353,12 @@
     renderPending(await fetchPending());
     badgePopups();
     await populateDeptFilter();
+    
+    // Add event listener for Add New Regulation button
+    const addRegulationBtn = document.getElementById('addRegulationBtn');
+    if (addRegulationBtn) {
+      addRegulationBtn.addEventListener('click', openAddRegulationModal);
+    }
   }
 
   load();
@@ -360,6 +376,143 @@
         openAllPendingModal(latestPending);
       }catch(err){ /* no-op */ }
     });
+  }
+
+  // Regulation management functions
+  window.viewRegulation = function(id) {
+    // For now, show a simple view modal
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-header"><h3>View Regulation</h3><button class="modal-close">&times;</button></div>
+      <div class="modal-body">
+        <p><strong>Regulation ID:</strong> ${id}</p>
+        <p>This is a placeholder for the regulation view functionality.</p>
+        <p>In a full implementation, this would show detailed regulation information.</p>
+      </div>
+      <div class="modal-actions"><button class="btn btn-primary">Close</button></div>
+    `;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    overlay.style.display = 'flex';
+    
+    const close = () => { try { document.body.removeChild(overlay); } catch(e){} };
+    modal.querySelector('.modal-close').onclick = close;
+    modal.querySelector('.btn').onclick = close;
+    overlay.addEventListener('click', (e) => { if(e.target === overlay) close(); });
+    document.addEventListener('keydown', function onKey(e) { if(e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } });
+  };
+
+  window.editRegulation = function(id) {
+    // For now, show a simple edit modal
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-header"><h3>Edit Regulation</h3><button class="modal-close">&times;</button></div>
+      <div class="modal-body">
+        <p><strong>Regulation ID:</strong> ${id}</p>
+        <p>This is a placeholder for the regulation edit functionality.</p>
+        <p>In a full implementation, this would show an edit form.</p>
+      </div>
+      <div class="modal-actions"><button class="btn btn-primary">Close</button></div>
+    `;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    overlay.style.display = 'flex';
+    
+    const close = () => { try { document.body.removeChild(overlay); } catch(e){} };
+    modal.querySelector('.modal-close').onclick = close;
+    modal.querySelector('.btn').onclick = close;
+    overlay.addEventListener('click', (e) => { if(e.target === overlay) close(); });
+    document.addEventListener('keydown', function onKey(e) { if(e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } });
+  };
+
+  function openAddRegulationModal() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-header"><h3>Add New Regulation</h3><button class="modal-close">&times;</button></div>
+      <div class="modal-body">
+        <form id="addRegulationForm">
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Regulation Name:</label>
+            <input type="text" id="regName" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Department:</label>
+            <input type="text" id="regDepartment" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Risk Level:</label>
+            <select id="regRiskLevel" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+              <option value="Low">Low</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Next Review Date:</label>
+            <input type="date" id="regNextReview" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+          </div>
+        </form>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeAddRegulationModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitAddRegulation()">Add Regulation</button>
+      </div>
+    `;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    overlay.style.display = 'flex';
+    
+    const close = () => { try { document.body.removeChild(overlay); } catch(e){} };
+    modal.querySelector('.modal-close').onclick = close;
+    overlay.addEventListener('click', (e) => { if(e.target === overlay) close(); });
+    document.addEventListener('keydown', function onKey(e) { if(e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } });
+    
+    // Set default date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('regNextReview').value = tomorrow.toISOString().slice(0, 10);
+  }
+
+  function closeAddRegulationModal() {
+    const overlay = document.querySelector('.modal-overlay');
+    if (overlay) {
+      try { document.body.removeChild(overlay); } catch(e){}
+    }
+  }
+
+  async function submitAddRegulation() {
+    const name = document.getElementById('regName').value;
+    const department = document.getElementById('regDepartment').value;
+    const riskLevel = document.getElementById('regRiskLevel').value;
+    const nextReview = document.getElementById('regNextReview').value;
+    
+    if (!name || !department || !nextReview) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    
+    try {
+      // This would typically send data to your backend API
+      // For now, we'll just show a success message and close the modal
+      alert('Regulation added successfully! (This is a demo - data would be saved to database in production)');
+      closeAddRegulationModal();
+      
+      // Refresh the regulations list
+      const regs = await fetchRegs();
+      renderRegs(regs);
+      renderTopCards(regs);
+    } catch (error) {
+      alert('Error adding regulation: ' + error.message);
+    }
   }
 
   // Recompute chart inner width on resize

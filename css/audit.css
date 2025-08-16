@@ -79,10 +79,57 @@
       font-size: 24px;
     }
 
-    .sidebar .user strong {
-      display: block;
-      font-weight: 600;
-    }
+      .sidebar .user strong {
+    display: block;
+    font-weight: 600;
+  }
+
+  .sidebar .user {
+    position: relative;
+    cursor: pointer;
+  }
+
+  .logout-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 8px;
+    margin-top: 8px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 1000;
+  }
+
+  .logout-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .logout-btn {
+    width: 100%;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .logout-btn:hover {
+    background: #c82333;
+  }
 
 
     /* Main content */

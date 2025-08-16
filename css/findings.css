@@ -91,7 +91,7 @@
 
   .logout-dropdown {
     position: absolute;
-    top: 100%;
+    bottom: 100%;
     left: 0;
     right: 0;
     background: white;
@@ -99,10 +99,10 @@
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     padding: 8px;
-    margin-top: 8px;
+    margin-bottom: 8px;
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-10px);
+    transform: translateY(10px);
     transition: all 0.3s ease;
     z-index: 1000;
   }

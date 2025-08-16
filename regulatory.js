@@ -19,8 +19,14 @@
       const dept = r.department || r.dept_responsible || r.dept || '';
       const name = r.name || r.regulation_name || r.title || '—';
       const riskLevel = r.risk_level || 'Medium';
-      const daysUntil = nextReview ? Math.floor((new Date(nextReview).getTime() - nowMs) / (1000*60*60*24)) : null;
-      const status = daysUntil !== null && daysUntil < 0 ? 'non-compliant' : 'compliant';
+      
+      // Use database status if available, otherwise calculate based on review dates
+      let status = r.status;
+      if (!status || status === 'Active') {
+        const daysUntil = nextReview ? Math.floor((new Date(nextReview).getTime() - nowMs) / (1000*60*60*24)) : null;
+        status = daysUntil !== null && daysUntil < 0 ? 'non-compliant' : 'compliant';
+      }
+      
       return { 
         id: r.regulation_id, 
         name, 
@@ -51,10 +57,13 @@
       const riskLevel = r.risk_level || 'Medium';
       const riskLevelClass = riskLevel.toLowerCase();
       
+      // Create status class for styling
+      const statusClass = `status-${r.status.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+      
       tr.innerHTML = `
         <td>${r.name}</td>
         <td>${r.department || 'Not Assigned'}</td>
-        <td>${r.status}</td>
+        <td><span class="${statusClass}">${r.status}</span></td>
         <td><span class="${riskLevelClass}">${riskLevel}</span></td>
         <td>${r.last_review ? new Date(r.last_review).toISOString().slice(0,10) : 'Not Reviewed'}</td>
         <td>${r.next_review ? new Date(r.next_review).toISOString().slice(0,10) : 'Not Scheduled'}</td>
@@ -73,7 +82,10 @@
     const total = rows.length;
     const compliant = rows.filter(r=> String(r.status||'').toLowerCase()==='compliant').length;
     const nonCompliant = rows.filter(r=> String(r.status||'').toLowerCase()==='non-compliant').length;
+    const active = rows.filter(r=> String(r.status||'').toLowerCase()==='active').length;
+    const pending = rows.filter(r=> String(r.status||'').toLowerCase()==='pending').length;
     const soon = rows.filter(r=> r.next_review && (new Date(r.next_review)-new Date())/(1000*60*60*24) <= 30).length;
+    
     document.getElementById('totalRegs').textContent = total;
     document.getElementById('compliant').textContent = compliant;
     document.getElementById('nonCompliant').textContent = nonCompliant;
@@ -402,18 +414,18 @@
       overlay.className = 'modal-overlay';
       const modal = document.createElement('div');
       modal.className = 'modal';
-      modal.innerHTML = `
-        <div class="modal-header"><h3>View Regulation</h3><button class="modal-close">&times;</button></div>
-        <div class="modal-body">
-          <p><strong>Regulation ID:</strong> ${regulation.regulation_id}</p>
-          <p><strong>Name:</strong> ${regulation.title || regulation.name}</p>
-          <p><strong>Department:</strong> ${regulation.department || 'Not Assigned'}</p>
-          <p><strong>Status:</strong> ${regulation.status || 'Active'}</p>
-          <p><strong>Risk Level:</strong> ${regulation.risk_level || 'Medium'}</p>
-          <p><strong>Last Review:</strong> ${regulation.last_review ? new Date(regulation.last_review).toISOString().slice(0,10) : 'Not Reviewed'}</p>
-          <p><strong>Next Review:</strong> ${regulation.next_review ? new Date(regulation.next_review).toISOString().slice(0,10) : 'Not Scheduled'}</p>
-          <p><strong>Description:</strong> ${regulation.description || 'No description available'}</p>
-        </div>
+              modal.innerHTML = `
+          <div class="modal-header"><h3>View Regulation</h3><button class="modal-close">&times;</button></div>
+          <div class="modal-body">
+            <p><strong>Regulation ID:</strong> ${regulation.regulation_id}</p>
+            <p><strong>Name:</strong> ${regulation.title || regulation.name}</p>
+            <p><strong>Department:</strong> ${regulation.department || 'Not Assigned'}</p>
+            <p><strong>Status:</strong> <span class="status-${(regulation.status || 'Active').toLowerCase().replace(/[^a-z0-9]/g, '-')}">${regulation.status || 'Active'}</span></p>
+            <p><strong>Risk Level:</strong> ${regulation.risk_level || 'Medium'}</p>
+            <p><strong>Last Review:</strong> ${regulation.last_review ? new Date(regulation.last_review).toISOString().slice(0,10) : 'Not Reviewed'}</p>
+            <p><strong>Next Review:</strong> ${regulation.next_review ? new Date(regulation.next_review).toISOString().slice(0,10) : 'Not Scheduled'}</p>
+            <p><strong>Description:</strong> ${regulation.description || 'No description available'}</p>
+          </div>
         <div class="modal-actions">
           <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">Close</button>
         </div>
@@ -476,6 +488,17 @@
             <input type="text" id="regDepartment" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
           </div>
           <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Status:</label>
+            <select id="regStatus" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+              <option value="Active" selected>Active</option>
+              <option value="Pending">Pending</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Under Review">Under Review</option>
+              <option value="Compliant">Compliant</option>
+              <option value="Non-Compliant">Non-Compliant</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 15px;">
             <label style="display: block; font-weight: 600; margin-bottom: 5px;">Risk Level:</label>
             <select id="regRiskLevel" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
               <option value="Low">Low</option>
@@ -523,6 +546,7 @@
   async function submitAddRegulation() {
     const name = document.getElementById('regName').value;
     const department = document.getElementById('regDepartment').value;
+    const status = document.getElementById('regStatus').value;
     const riskLevel = document.getElementById('regRiskLevel').value;
     const lastReview = document.getElementById('regLastReview').value;
     const nextReview = document.getElementById('regNextReview').value;

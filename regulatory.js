@@ -14,13 +14,28 @@
     const rows = await res.json();
     const nowMs = Date.now();
     const normalize = (r)=>{
-      const nextReview = r.next_review_date || r.next_review || null;
+      const nextReview = r.next_review || r.next_review_date || null;
       const lastReview = r.last_review || r.last_accessed_date || null;
       const dept = r.department || r.dept_responsible || r.dept || '';
       const name = r.name || r.regulation_name || r.title || '—';
-      const daysUntil = nextReview ? Math.floor((new Date(nextReview).getTime() - nowMs) / (1000*60*60*24)) : null;
-      const status = daysUntil !== null && daysUntil < 0 ? 'non-compliant' : 'compliant';
-      return { name, department: dept, status, last_review: lastReview, next_review: nextReview };
+      const riskLevel = r.risk_level || 'Medium';
+      
+      // Use database status if available, otherwise calculate based on review dates
+      let status = r.status;
+      if (!status) {
+        const daysUntil = nextReview ? Math.floor((new Date(nextReview).getTime() - nowMs) / (1000*60*60*24)) : null;
+        status = daysUntil !== null && daysUntil < 0 ? 'non-compliant' : 'compliant';
+      }
+      
+      return { 
+        id: r.regulation_id, 
+        name, 
+        department: dept, 
+        status, 
+        risk_level: riskLevel,
+        last_review: lastReview, 
+        next_review: nextReview 
+      };
     };
     return Array.isArray(rows) ? rows.map(normalize) : [];
   }
@@ -39,12 +54,25 @@
     regsBody.innerHTML='';
     rows.forEach(r=>{
       const tr=document.createElement('tr');
+      const riskLevel = r.risk_level || 'Medium';
+      const riskLevelClass = riskLevel.toLowerCase();
+      
+      // Create status class for styling
+      const statusClass = `status-${r.status.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+      
       tr.innerHTML = `
         <td>${r.name}</td>
-        <td>${r.department}</td>
-        <td>${r.status}</td>
-        <td>${r.last_review ? new Date(r.last_review).toISOString().slice(0,10) : ''}</td>
-        <td>${r.next_review ? new Date(r.next_review).toISOString().slice(0,10) : ''}</td>
+        <td>${r.department || 'Not Assigned'}</td>
+        <td><span class="${statusClass}">${r.status}</span></td>
+        <td><span class="${riskLevelClass}">${riskLevel}</span></td>
+        <td>${r.last_review ? new Date(r.last_review).toISOString().slice(0,10) : 'Not Reviewed'}</td>
+        <td>${r.next_review ? new Date(r.next_review).toISOString().slice(0,10) : 'Not Scheduled'}</td>
+        <td>
+          <div class="action-buttons">
+            <button class="btn-view" onclick="viewRegulation(${r.id})">👁️ View</button>
+            <button class="btn-edit" onclick="editRegulation(${r.id})">✏️ Edit</button>
+          </div>
+        </td>
       `;
       regsBody.appendChild(tr);
     });
@@ -54,7 +82,10 @@
     const total = rows.length;
     const compliant = rows.filter(r=> String(r.status||'').toLowerCase()==='compliant').length;
     const nonCompliant = rows.filter(r=> String(r.status||'').toLowerCase()==='non-compliant').length;
+    const active = rows.filter(r=> String(r.status||'').toLowerCase()==='active').length;
+    const pending = rows.filter(r=> String(r.status||'').toLowerCase()==='pending').length;
     const soon = rows.filter(r=> r.next_review && (new Date(r.next_review)-new Date())/(1000*60*60*24) <= 30).length;
+    
     document.getElementById('totalRegs').textContent = total;
     document.getElementById('compliant').textContent = compliant;
     document.getElementById('nonCompliant').textContent = nonCompliant;
@@ -119,7 +150,6 @@
   }
 
   async function renderChart(){
-    const labels = ['Audits','Incidents','Documents','Regulations','Risks'];
     async function fetchArray(url){
       try{
         const res = await fetch(url);
@@ -131,24 +161,37 @@
       }
     }
 
-    const [audits, incidents, documents, regs, risks] = await Promise.all([
-      fetchArray(`${API}/audits`),
-      fetchArray(`${API}/api/incidents`),
-      fetchArray(`${API}/documents`),
-      fetchRegs(),
-      fetchArray(`${API}/api/risks`)
-    ]);
+    // Fetch risks data to get department-based risk counts
+    const risks = await fetchArray(`${API}/api/risks`);
+    
+    // Group risks by department and count them
+    const deptRiskCounts = {};
+    risks.forEach(risk => {
+      const dept = risk.dept || 'Unknown Department';
+      if (!deptRiskCounts[dept]) {
+        deptRiskCounts[dept] = 0;
+      }
+      deptRiskCounts[dept]++;
+    });
 
-    const norm = (s)=> String(s||'').toLowerCase().trim();
-    const filterByDept = (arr, getter)=> currentDeptFilter ? arr.filter(x=> norm(getter(x)) === norm(currentDeptFilter)) : arr;
+    // Apply department filter if set
+    if (currentDeptFilter) {
+      const filteredDeptRiskCounts = {};
+      if (deptRiskCounts[currentDeptFilter]) {
+        filteredDeptRiskCounts[currentDeptFilter] = deptRiskCounts[currentDeptFilter];
+      }
+      deptRiskCounts = filteredDeptRiskCounts;
+    }
 
-    const counts = [
-      filterByDept(audits, a=>a.dept_audited).length,
-      filterByDept(incidents, i=>i.department).length,
-      filterByDept(documents, d=>d.owner_dept).length,
-      filterByDept(regs, r=>r.department).length,
-      filterByDept(risks, r=>r.dept).length
-    ];
+    // Convert to arrays for chart
+    const labels = Object.keys(deptRiskCounts);
+    const counts = Object.values(deptRiskCounts);
+
+    // If no departments found, show a default message
+    if (labels.length === 0) {
+      labels.push('No Departments');
+      counts.push(0);
+    }
 
     const ctx = document.getElementById('complianceChart').getContext('2d');
     if (window._regComplianceChart) {
@@ -170,17 +213,40 @@
         labels,
         datasets: [
           {
-            label: currentDeptFilter ? `Records (${currentDeptFilter})` : 'System Records',
+            label: currentDeptFilter ? `Risks (${currentDeptFilter})` : 'Risk Count by Department',
             data: counts,
-            backgroundColor: ['#42a5f5','#66bb6a','#ffa726','#ab47bc','#ef5350']
+            backgroundColor: '#ef5350',
+            borderColor: '#d32f2f',
+            borderWidth: 1
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-        plugins: { legend: { position: 'top' } }
+        scales: { 
+          y: { 
+            beginAtZero: true, 
+            ticks: { precision: 0 },
+            title: {
+              display: true,
+              text: 'Number of Risks'
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Departments'
+            }
+          }
+        },
+        plugins: { 
+          legend: { position: 'top' },
+          title: {
+            display: true,
+            text: currentDeptFilter ? `Risk Distribution - ${currentDeptFilter}` : 'Risk Distribution by Department'
+          }
+        }
       }
     });
   }
@@ -268,46 +334,20 @@
     document.addEventListener('keydown', function onKey(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', onKey); } });
   }
 
-  function badgePopups(){
-    const info={
-      SOX: 'Sarbanes-Oxley Act (SOX) establishes auditing and financial regulations for public companies to protect shareholders and the general public. It mandates internal controls and reporting accuracy.',
-      AML: 'Anti-Money Laundering (AML) comprises laws and regulations to prevent criminals from disguising illegally obtained funds as legitimate income.',
-      GDPR: 'General Data Protection Regulation (GDPR) is the EU law on data protection and privacy, providing individuals control over their personal data.',
-      ISO: 'ISO standards ensure quality, safety, and efficiency across products, services, and systems.',
-      FDA: 'Food and Drug Administration (FDA) regulates food, drugs, medical devices, cosmetics and more to ensure safety and efficacy.',
-      DPA: 'Data Privacy Act provides protection of personal information collected by organizations.',
-      BIR: 'Bureau of Internal Revenue regulations for taxation compliance and reporting.',
-      ECA: 'ECA outlines consumer protection and trade compliance frameworks.'
-    };
-    document.querySelectorAll('.card-badge').forEach(el=>{
-      el.addEventListener('click', ()=>{
-        const code=el.getAttribute('data-code');
-        const overlay=document.createElement('div');
-        overlay.className='modal-overlay';
-        const modal=document.createElement('div');
-        modal.className='modal';
-        modal.innerHTML=`
-          <div class="modal-header"><h3>${code} Overview</h3><button class="modal-close">&times;</button></div>
-          <div class="modal-body"><p>${info[code]||'No description available.'}</p></div>
-          <div class="modal-actions"><button class="btn btn-primary">Close</button></div>
-        `;
-        overlay.appendChild(modal);
-        document.body.appendChild(overlay);
-        overlay.style.display='flex';
-        const close=()=>document.body.removeChild(overlay);
-        modal.querySelector('.modal-close').onclick=close;
-        modal.querySelector('.btn').onclick=close;
-      });
-    });
-  }
+
 
   async function load(){
     const regs = await fetchRegs();
     renderRegs(regs);
     renderTopCards(regs);
     renderPending(await fetchPending());
-    badgePopups();
     await populateDeptFilter();
+    
+    // Add event listener for Add New Regulation button
+    const addRegulationBtn = document.getElementById('addRegulationBtn');
+    if (addRegulationBtn) {
+      addRegulationBtn.addEventListener('click', openAddRegulationModal);
+    }
   }
 
   load();
@@ -317,6 +357,36 @@
     renderPending(await fetchPending());
   }, 5000);
 
+  // Initialize logout functionality
+  initializeLogout();
+
+  // Logout functionality
+  function initializeLogout() {
+    const userSection = document.getElementById('userSection');
+    const logoutDropdown = document.getElementById('logoutDropdown');
+    
+    if (userSection && logoutDropdown) {
+      // Show logout dropdown on user section click
+      userSection.addEventListener('click', (e) => {
+        e.stopPropagation();
+        logoutDropdown.classList.toggle('show');
+      });
+      
+      // Hide logout dropdown when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!userSection.contains(e.target)) {
+          logoutDropdown.classList.remove('show');
+        }
+      });
+    }
+  }
+
+  // Logout function
+  function logout() {
+    // You can add any cleanup logic here (clear session, etc.)
+    window.location.href = 'index.html';
+  }
+
   if(viewAllLink){
     viewAllLink.addEventListener('click', async (e)=>{
       e.preventDefault();
@@ -325,6 +395,180 @@
         openAllPendingModal(latestPending);
       }catch(err){ /* no-op */ }
     });
+  }
+
+  // Regulation management functions
+  window.viewRegulation = async function(id) {
+    try {
+      // Fetch regulation details
+      const regResponse = await fetch(`${API}/api/regulations`);
+      const regulations = await regResponse.json();
+      const regulation = regulations.find(r => r.regulation_id == id);
+      
+      if (!regulation) {
+        alert('Regulation not found');
+        return;
+      }
+      
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+              modal.innerHTML = `
+          <div class="modal-header"><h3>View Regulation</h3><button class="modal-close">&times;</button></div>
+          <div class="modal-body">
+            <p><strong>Regulation ID:</strong> ${regulation.regulation_id}</p>
+            <p><strong>Name:</strong> ${regulation.title || regulation.name}</p>
+            <p><strong>Department:</strong> ${regulation.department || 'Not Assigned'}</p>
+            <p><strong>Status:</strong> <span class="status-${(regulation.status || 'Active').toLowerCase().replace(/[^a-z0-9]/g, '-')}">${regulation.status || 'Active'}</span></p>
+            <p><strong>Risk Level:</strong> ${regulation.risk_level || 'Medium'}</p>
+            <p><strong>Last Review:</strong> ${regulation.last_review ? new Date(regulation.last_review).toISOString().slice(0,10) : 'Not Reviewed'}</p>
+            <p><strong>Next Review:</strong> ${regulation.next_review ? new Date(regulation.next_review).toISOString().slice(0,10) : 'Not Scheduled'}</p>
+            <p><strong>Description:</strong> ${regulation.description || 'No description available'}</p>
+          </div>
+        <div class="modal-actions">
+          <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+        </div>
+      `;
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+      overlay.style.display = 'flex';
+      
+      const close = () => { try { document.body.removeChild(overlay); } catch(e){} };
+      modal.querySelector('.modal-close').onclick = close;
+      overlay.addEventListener('click', (e) => { if(e.target === overlay) close(); });
+      document.addEventListener('keydown', function onKey(e) { if(e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } });
+    } catch (error) {
+      console.error('Error viewing regulation:', error);
+      alert('Error loading regulation details');
+    }
+  };
+
+  window.editRegulation = function(id) {
+    // For now, show a simple edit modal
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-header"><h3>Edit Regulation</h3><button class="modal-close">&times;</button></div>
+      <div class="modal-body">
+        <p><strong>Regulation ID:</strong> ${id}</p>
+        <p>This is a placeholder for the regulation edit functionality.</p>
+        <p>In a full implementation, this would show an edit form.</p>
+      </div>
+      <div class="modal-actions"><button class="btn btn-primary">Close</button></div>
+    `;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    overlay.style.display = 'flex';
+    
+    const close = () => { try { document.body.removeChild(overlay); } catch(e){} };
+    modal.querySelector('.modal-close').onclick = close;
+    modal.querySelector('.btn').onclick = close;
+    overlay.addEventListener('click', (e) => { if(e.target === overlay) close(); });
+    document.addEventListener('keydown', function onKey(e) { if(e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } });
+  };
+
+  function openAddRegulationModal() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-header"><h3>Add New Regulation</h3><button class="modal-close">&times;</button></div>
+      <div class="modal-body">
+        <form id="addRegulationForm">
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Regulation Name:</label>
+            <input type="text" id="regName" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Department:</label>
+            <input type="text" id="regDepartment" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Status:</label>
+            <select id="regStatus" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+              <option value="Active" selected>Active</option>
+              <option value="Pending">Pending</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Under Review">Under Review</option>
+              <option value="Compliant">Compliant</option>
+              <option value="Non-Compliant">Non-Compliant</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Risk Level:</label>
+            <select id="regRiskLevel" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+              <option value="Low">Low</option>
+              <option value="Medium" selected>Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Last Review Date:</label>
+            <input type="date" id="regLastReview" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Next Review Date:</label>
+            <input type="date" id="regNextReview" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+          </div>
+        </form>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeAddRegulationModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitAddRegulation()">Add Regulation</button>
+      </div>
+    `;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    overlay.style.display = 'flex';
+    
+    const close = () => { try { document.body.removeChild(overlay); } catch(e){} };
+    modal.querySelector('.modal-close').onclick = close;
+    overlay.addEventListener('click', (e) => { if(e.target === overlay) close(); });
+    document.addEventListener('keydown', function onKey(e) { if(e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } });
+    
+    // Set default date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('regNextReview').value = tomorrow.toISOString().slice(0, 10);
+  }
+
+  function closeAddRegulationModal() {
+    const overlay = document.querySelector('.modal-overlay');
+    if (overlay) {
+      try { document.body.removeChild(overlay); } catch(e){}
+    }
+  }
+
+  async function submitAddRegulation() {
+    const name = document.getElementById('regName').value;
+    const department = document.getElementById('regDepartment').value;
+    const status = document.getElementById('regStatus').value;
+    const riskLevel = document.getElementById('regRiskLevel').value;
+    const lastReview = document.getElementById('regLastReview').value;
+    const nextReview = document.getElementById('regNextReview').value;
+    
+    if (!name || !department || !nextReview) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    
+    try {
+      // This would typically send data to your backend API
+      // For now, we'll just show a success message and close the modal
+      alert('Regulation added successfully! (This is a demo - data would be saved to database in production)');
+      closeAddRegulationModal();
+      
+      // Refresh the regulations list
+      const regs = await fetchRegs();
+      renderRegs(regs);
+      renderTopCards(regs);
+    } catch (error) {
+      alert('Error adding regulation: ' + error.message);
+    }
   }
 
   // Recompute chart inner width on resize

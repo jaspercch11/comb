@@ -82,6 +82,52 @@
       font-weight: 600;
     }
 
+    .sidebar .user {
+      position: relative;
+      cursor: pointer;
+    }
+
+    .logout-dropdown {
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 8px;
+      margin-bottom: 8px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+
+    .logout-dropdown.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .logout-btn {
+      width: 100%;
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .logout-btn:hover {
+      background: #c82333;
+    }
+
     /* Main content */
     .main {
       margin-left: 220px;
@@ -199,11 +245,56 @@ header {
             border-collapse: collapse;
         }
 
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .table-header h2 {
+            margin: 0;
+        }
+
         .table th,
         .table td {
             border: 1px solid #ccc;
             padding: 10px;
             text-align: center;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .btn-view {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn-edit {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn-view:hover {
+            background: #0056b3;
+        }
+
+        .btn-edit:hover {
+            background: #1e7e34;
         }
 
         .low {
@@ -227,6 +318,61 @@ header {
             padding: 3px;
         }
 
+        /* Status styling */
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-under-review {
+            background: #cce5ff;
+            color: #004085;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-compliant {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-non-compliant {
+            background: #f5c6cb;
+            color: #721c24;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
        .grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -236,53 +382,7 @@ header {
             padding: 20px 10px;
         }
 
-        .badge-item {
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 15px 15px 10px;
-            height: 230px;
-            width: 100%;
-            max-width: 200px;
-            margin: 0 auto;
-            transition: transform 0.2s ease;
-        }
 
-        .badge-item:hover {
-            transform: translateY(-3px);
-        }
-
-        .card-badge {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100%;
-            width: 100%;
-            justify-content: center;
-            cursor: pointer;
-            gap: 10px;
-        }
-
-        .badge-logo {
-            width: 100%;
-            max-width: 140px;
-            height: auto;
-            object-fit: contain;
-            user-select: none;
-        }
-
-        .label {
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: #222;
-            text-align: center;
-            line-height: 1.2;
-            max-width: 100%;
-            white-space: normal;
-        }
 
         /* Pending Tasks Header */
         .pending-header {

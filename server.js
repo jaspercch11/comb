@@ -59,16 +59,7 @@ const auditsDb = pool;
       updated_at TIMESTAMPTZ DEFAULT now()
     )`);
     
-    // Create regulation departments table for many-to-many relationship
-    await pool.query(`CREATE TABLE IF NOT EXISTS regulation_departments (
-      id SERIAL PRIMARY KEY,
-      regulation_id INTEGER NOT NULL REFERENCES regulations(regulation_id) ON DELETE CASCADE,
-      department TEXT NOT NULL,
-      created_at TIMESTAMPTZ DEFAULT now()
-    )`);
-    
-    // Add index for better performance
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_regulation_departments_reg_id ON regulation_departments(regulation_id)`);
+
     
     console.log('Database schema updated successfully');
   } catch (e) {
@@ -466,30 +457,7 @@ app.get('/api/dashboard/compliance-status', async (req, res) => {
 
 app.get('/api/regulations', async (req, res) => {
   try {
-    // Get regulations with their departments
-    const result = await auditsDb.query(`
-      SELECT 
-        r.regulation_id,
-        r.title,
-        r.description,
-        r.status,
-        r.risk_level,
-        r.last_review,
-        r.next_review,
-        r.department,
-        ARRAY_AGG(rd.department) FILTER (WHERE rd.department IS NOT NULL) as departments
-      FROM regulations r
-      LEFT JOIN regulation_departments rd ON r.regulation_id = rd.regulation_id
-      GROUP BY r.regulation_id, r.title, r.description, r.status, r.risk_level, r.last_review, r.next_review, r.department
-      ORDER BY r.regulation_id ASC
-    `);
-    
-    // Process the results to handle multiple departments
-    const rows = result.rows.map(row => ({
-      ...row,
-      departments: row.departments || [row.department].filter(Boolean)
-    }));
-    
+    const rows = (await auditsDb.query('SELECT * FROM regulations ORDER BY regulation_id ASC')).rows;
     res.json(rows);
   } catch (e) {
     console.error('Error fetching regulations', e);
@@ -497,63 +465,7 @@ app.get('/api/regulations', async (req, res) => {
   }
 });
 
-// Get departments for a specific regulation
-app.get('/api/regulations/:id/departments', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const result = await auditsDb.query(`
-      SELECT department FROM regulation_departments 
-      WHERE regulation_id = $1 
-      ORDER BY department
-    `, [id]);
-    res.json(result.rows.map(row => row.department));
-  } catch (e) {
-    console.error('Error fetching regulation departments:', e);
-    res.status(500).json({ error: 'Failed to fetch regulation departments' });
-  }
-});
 
-// Update departments for a regulation
-app.put('/api/regulations/:id/departments', async (req, res) => {
-  const { id } = req.params;
-  const { departments } = req.body;
-  
-  if (!Array.isArray(departments)) {
-    return res.status(400).json({ error: 'Departments must be an array' });
-  }
-  
-  try {
-    await auditsDb.query('BEGIN');
-    
-    // Remove existing departments
-    await auditsDb.query('DELETE FROM regulation_departments WHERE regulation_id = $1', [id]);
-    
-    // Add new departments
-    for (const dept of departments) {
-      if (dept && dept.trim()) {
-        await auditsDb.query(
-          'INSERT INTO regulation_departments (regulation_id, department) VALUES ($1, $2)',
-          [id, dept.trim()]
-        );
-      }
-    }
-    
-    await auditsDb.query('COMMIT');
-    
-    // Return updated departments
-    const result = await auditsDb.query(`
-      SELECT department FROM regulation_departments 
-      WHERE regulation_id = $1 
-      ORDER BY department
-    `, [id]);
-    
-    res.json(result.rows.map(row => row.department));
-  } catch (e) {
-    try { await auditsDb.query('ROLLBACK'); } catch (_) {}
-    console.error('Error updating regulation departments:', e);
-    res.status(500).json({ error: 'Failed to update regulation departments' });
-  }
-});
 
 app.get('/graph-data', async (req, res) => {
   try {

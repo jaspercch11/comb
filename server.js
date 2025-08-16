@@ -36,6 +36,7 @@ const auditsDb = pool;
 (async function ensureSchema(){
   try {
     await pool.query(`ALTER TABLE risks ADD COLUMN IF NOT EXISTS created_via TEXT`);
+    await pool.query(`ALTER TABLE risks ADD COLUMN IF NOT EXISTS hidden_in_findings BOOLEAN DEFAULT FALSE`);
   } catch (e) {
     console.warn('ensureSchema skipped or failed:', e?.message || e);
   }
@@ -701,6 +702,48 @@ app.get('/api/risks', async (req, res) => {
   } catch (error) {
     console.error('Error fetching risks:', error);
     res.status(500).json({ error: 'Failed to fetch risks.' });
+  }
+});
+
+// Risks for Findings view only (exclude those hidden in findings)
+app.get('/api/risks/findings', async (req, res) => {
+  try {
+    const result = await auditsDb.query(`
+      SELECT
+        r.risk_id AS id,
+        r.risk_title,
+        r.dept,
+        r.review_date,
+        COALESCE(
+          ROUND(
+            CASE WHEN SUM(rt.weight) > 0
+              THEN SUM(CASE WHEN rt.done THEN rt.weight ELSE 0 END)::float / SUM(rt.weight) * 100
+              ELSE 0 END
+          ), 0
+        ) AS progress,
+        'on track' AS status
+      FROM risks r
+      LEFT JOIN risk_tasks rt ON r.risk_id = rt.risk_id
+      WHERE COALESCE(r.hidden_in_findings, FALSE) = FALSE
+      GROUP BY r.risk_id
+      ORDER BY r.review_date ASC
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching findings risks:', error);
+    res.status(500).json({ error: 'Failed to fetch risks.' });
+  }
+});
+
+// Hide a risk from Findings (do not delete DB rows)
+app.put('/api/risks/:id(\\d+)/hide-in-findings', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await auditsDb.query('UPDATE risks SET hidden_in_findings = TRUE WHERE risk_id = $1', [id]);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Hide in findings failed', e);
+    res.status(500).json({ error: 'Failed to hide risk in findings' });
   }
 });
 

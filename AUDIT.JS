@@ -233,14 +233,21 @@ function openActivityModal(activity){
         action_required: false
       };
       
+      console.log('🔔 Sending notification:', notificationData);
+      console.log('🌐 API endpoint: http://localhost:3000/api/notifications');
+      
       const response = await fetch('http://localhost:3000/api/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(notificationData)
       });
       
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', response.headers);
+      
       if (response.ok) {
         const result = await response.json();
+        console.log('✅ Response data:', result);
         if (result.success) {
           notifyBtn.textContent = '✅ Sent!';
           notifyBtn.style.background = '#4CAF50';
@@ -251,10 +258,12 @@ function openActivityModal(activity){
           throw new Error(result.error || 'Failed to send notification');
         }
       } else {
-        throw new Error('Failed to send notification');
+        const errorText = await response.text();
+        console.error('❌ Response error text:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
     } catch (error) {
-      console.error('Error sending notification:', error);
+      console.error('❌ Error sending notification:', error);
       notifyBtn.textContent = '❌ Failed';
       notifyBtn.style.background = '#f44336';
       setTimeout(() => {

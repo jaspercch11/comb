@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notification Debug</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .test-section {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .result {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 15px;
+      margin: 10px 0;
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+    .error {
+      background: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
+    .success {
+      background: #d4edda;
+      border-color: #c3e6cb;
+      color: #155724;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Notification System Debug</h1>
+  
+  <div class="test-section">
+    <h3>1. Test Server Connection</h3>
+    <button onclick="testServerConnection()">Test Server Connection</button>
+    <div id="serverResult" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>2. Test Database Schema</h3>
+    <button onclick="testDatabaseSchema()">Check Notifications Table</button>
+    <div id="schemaResult" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>3. Test Notification Creation</h3>
+    <button onclick="testCreateNotification()">Create Test Notification</button>
+    <div id="createResult" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>4. Test Notification Retrieval</h3>
+    <button onclick="testGetNotifications()">Get All Notifications</button>
+    <div id="getResult" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>5. Test Notification Count</h3>
+    <button onclick="testNotificationCount()">Get Unread Count</button>
+    <div id="countResult" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>6. Simulate Activity Notification</h3>
+    <button onclick="simulateActivityNotification()">Simulate Activity Notification</button>
+    <div id="simulateResult" class="result"></div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000';
+    
+    function showResult(elementId, content, isError = false) {
+      const element = document.getElementById(elementId);
+      element.textContent = content;
+      element.className = `result ${isError ? 'error' : 'success'}`;
+    }
+
+    async function testServerConnection() {
+      try {
+        const response = await fetch(`${API_BASE}/`);
+        if (response.ok) {
+          showResult('serverResult', '✅ Server is running and responding');
+        } else {
+          showResult('serverResult', `❌ Server responded with status: ${response.status}`, true);
+        }
+      } catch (error) {
+        showResult('serverResult', `❌ Server connection failed: ${error.message}`, true);
+      }
+    }
+
+    async function testDatabaseSchema() {
+      try {
+        // Try to create a test notification to see if table exists
+        const testData = {
+          title: 'Schema Test',
+          message: 'Testing if notifications table exists',
+          type: 'test',
+          dept: 'Test Department'
+        };
+        
+        const response = await fetch(`${API_BASE}/api/notifications`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(testData)
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          showResult('schemaResult', `✅ Notifications table exists and is working\nResponse: ${JSON.stringify(result, null, 2)}`);
+        } else {
+          const errorText = await response.text();
+          showResult('schemaResult', `❌ Failed to create notification: ${response.status}\n${errorText}`, true);
+        }
+      } catch (error) {
+        showResult('schemaResult', `❌ Error testing schema: ${error.message}`, true);
+      }
+    }
+
+    async function testCreateNotification() {
+      try {
+        const notificationData = {
+          title: 'Debug Test Notification',
+          message: 'This is a test notification to verify the system is working.',
+          type: 'debug',
+          dept: 'Debug Department',
+          sender_dept: 'System',
+          sender_user: 'Debug User',
+          priority: 'normal',
+          action_required: false
+        };
+        
+        const response = await fetch(`${API_BASE}/api/notifications`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(notificationData)
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          showResult('createResult', `✅ Notification created successfully!\nResponse: ${JSON.stringify(result, null, 2)}`);
+        } else {
+          const errorText = await response.text();
+          showResult('createResult', `❌ Failed to create notification: ${response.status}\n${errorText}`, true);
+        }
+      } catch (error) {
+        showResult('createResult', `❌ Error creating notification: ${error.message}`, true);
+      }
+    }
+
+    async function testGetNotifications() {
+      try {
+        const response = await fetch(`${API_BASE}/api/notifications`);
+        
+        if (response.ok) {
+          const notifications = await response.json();
+          showResult('getResult', `✅ Retrieved ${notifications.length} notifications\n\n${JSON.stringify(notifications, null, 2)}`);
+        } else {
+          const errorText = await response.text();
+          showResult('getResult', `❌ Failed to get notifications: ${response.status}\n${errorText}`, true);
+        }
+      } catch (error) {
+        showResult('getResult', `❌ Error getting notifications: ${error.message}`, true);
+      }
+    }
+
+    async function testNotificationCount() {
+      try {
+        const response = await fetch(`${API_BASE}/api/notifications/count`);
+        
+        if (response.ok) {
+          const result = await response.json();
+          showResult('countResult', `✅ Unread notifications count: ${result.count}`);
+        } else {
+          const errorText = await response.text();
+          showResult('countResult', `❌ Failed to get count: ${response.status}\n${errorText}`, true);
+        }
+      } catch (error) {
+        showResult('countResult', `❌ Error getting count: ${error.message}`, true);
+      }
+    }
+
+    async function simulateActivityNotification() {
+      try {
+        // Simulate the exact data structure from the audit activity
+        const activity = {
+          dept: 'Human Resources',
+          message: 'Test activity message for debugging',
+          at: new Date().toISOString()
+        };
+        
+        const notificationData = {
+          title: `Activity Alert: ${activity.dept || 'Department'}`,
+          message: `New activity in ${activity.dept || 'your department'}: ${activity.message}`,
+          type: 'audit',
+          dept: activity.dept,
+          sender_dept: 'Compliance & Risk Management',
+          sender_user: 'Jasper John Dreo',
+          priority: 'normal',
+          action_required: false
+        };
+        
+        const response = await fetch(`${API_BASE}/api/notifications`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(notificationData)
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          showResult('simulateResult', `✅ Activity notification created successfully!\nResponse: ${JSON.stringify(result, null, 2)}`);
+        } else {
+          const errorText = await response.text();
+          showResult('simulateResult', `❌ Failed to create activity notification: ${response.status}\n${errorText}`, true);
+        }
+      } catch (error) {
+        showResult('simulateResult', `❌ Error creating activity notification: ${error.message}`, true);
+      }
+    }
+
+    // Auto-run server connection test on page load
+    window.addEventListener('load', () => {
+      testServerConnection();
+    });
+  </script>
+</body>
+</html>

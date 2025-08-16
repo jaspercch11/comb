@@ -179,9 +179,41 @@ async function loadActivities(){
       p.textContent = it.message;
       wrap.appendChild(timeEl);
       wrap.appendChild(p);
+      wrap.style.cursor = 'pointer';
+      wrap.addEventListener('click', () => openActivityModal(it));
       container.appendChild(wrap);
     });
   }catch(err){ /* no-op */ }
+}
+
+function openActivityModal(activity){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal';
+  const modal = document.createElement('div');
+  modal.className = 'modal-content styled-form';
+  const when = activity.at ? new Date(activity.at) : null;
+  const dateStr = when && !isNaN(when.getTime()) ? `${when.toLocaleDateString()} ${when.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '—';
+  modal.innerHTML = `
+    <div class="modal-header">
+      <h3>Activity Details</h3>
+      <button class="close-btn" type="button">✕</button>
+    </div>
+    <div>
+      <p><strong>Department:</strong> ${activity.dept || '—'}</p>
+      <p><strong>Date:</strong> ${dateStr}</p>
+      <p><strong>Message:</strong> ${activity.message || '—'}</p>
+    </div>
+    <div class="modal-buttons">
+      <button type="button" class="upload-btn">Notify Department</button>
+    </div>
+  `;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  overlay.style.display = 'flex';
+  const close = () => { try { document.body.removeChild(overlay); } catch(e){} };
+  modal.querySelector('.close-btn').onclick = close;
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function onKey(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', onKey); } });
 }
 
 /* ============================================

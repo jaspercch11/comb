@@ -22,6 +22,7 @@
 
     filtered.forEach(audit => {
       const row = document.createElement("tr");
+      row.setAttribute('data-audit-id', audit.audit_id);
       row.innerHTML = `
           <td>${audit.audit_name || "N/A"}</td>
           <td>${audit.dept_audited || "N/A"}</td>
@@ -160,6 +161,61 @@ async function loadChart() {
   }
 }
 
+async function loadActivities(){
+  try{
+    const res = await fetch('http://localhost:3000/activities?limit=6');
+    const items = await res.json();
+    const container = document.querySelector('.recent-activity');
+    if (!container) return;
+    // remove old items (keep heading)
+    container.querySelectorAll('.activity-item').forEach(el=> el.remove());
+    (items || []).forEach(it => {
+      const wrap = document.createElement('div');
+      wrap.className = 'activity-item';
+      const when = new Date(it.at);
+      const timeEl = document.createElement('time');
+      timeEl.innerHTML = `${when.toLocaleDateString()}<br>${when.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      const p = document.createElement('p');
+      p.textContent = it.message;
+      wrap.appendChild(timeEl);
+      wrap.appendChild(p);
+      wrap.style.cursor = 'pointer';
+      wrap.addEventListener('click', () => openActivityModal(it));
+      container.appendChild(wrap);
+    });
+  }catch(err){ /* no-op */ }
+}
+
+function openActivityModal(activity){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal';
+  const modal = document.createElement('div');
+  modal.className = 'modal-content styled-form';
+  const when = activity.at ? new Date(activity.at) : null;
+  const dateStr = when && !isNaN(when.getTime()) ? `${when.toLocaleDateString()} ${when.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '—';
+  modal.innerHTML = `
+    <div class="modal-header">
+      <h3>Activity Details</h3>
+      <button class="close-btn" type="button">✕</button>
+    </div>
+    <div>
+      <p><strong>Department:</strong> ${activity.dept || '—'}</p>
+      <p><strong>Date:</strong> ${dateStr}</p>
+      <p><strong>Message:</strong> ${activity.message || '—'}</p>
+    </div>
+    <div class="modal-buttons">
+      <button type="button" class="upload-btn">Notify Department</button>
+    </div>
+  `;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  overlay.style.display = 'flex';
+  const close = () => { try { document.body.removeChild(overlay); } catch(e){} };
+  modal.querySelector('.close-btn').onclick = close;
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function onKey(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', onKey); } });
+}
+
 /* ============================================
    >>> FORM SUBMISSION HANDLER <<<
    ============================================ */
@@ -174,6 +230,7 @@ document.getElementById('auditForm').addEventListener('submit', async function(e
     auditor: this.auditor.value.trim(),
     audit_date: this.auditDate.value,
     status: this.status.value.trim().toLowerCase(), // normalized to lowercase for case-insensitive
+    actor: this.auditor.value.trim() || 'User'
   };
 
   try {
@@ -205,31 +262,6 @@ document.getElementById('auditForm').addEventListener('submit', async function(e
 /* ============================================
    >>> FILTER MODAL WIRING <<<
    ============================================ */
-window.addEventListener('DOMContentLoaded', () => {
-  const filterBtn = document.querySelector('.btn.btn-filter');
-  const modal = document.getElementById('auditFilterModal');
-  const form = document.getElementById('auditFilterForm');
-  if (!filterBtn || !modal || !form) return;
-
-  filterBtn.addEventListener('click', () => {
-    // Keep current filter selections in the form
-    document.getElementById('auditFilterDept').value = auditFilters.dept;
-    document.getElementById('auditFilterStatus').value = auditFilters.status;
-    modal.style.display = 'flex';
-  });
-
-  modal.addEventListener('click', (e) => { if (e.target === modal) closeAuditFilterModal(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.style.display === 'flex') closeAuditFilterModal(); });
-
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    auditFilters.dept = document.getElementById('auditFilterDept').value;
-    auditFilters.status = document.getElementById('auditFilterStatus').value.toLowerCase();
-    renderAudits();
-    closeAuditFilterModal();
-  });
-});
-
 function closeAuditFilterModal() {
   const modal = document.getElementById('auditFilterModal');
   if (modal) modal.style.display = 'none';
@@ -243,9 +275,148 @@ function resetAuditFilters() {
   closeAuditFilterModal();
 }
 
+function openAuditViewModal(audit){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal';
+  const modal = document.createElement('div');
+  modal.className = 'modal-content styled-form';
+  modal.innerHTML = `
+    <div class="modal-header">
+      <h3>📄 Audit Details</h3>
+      <button class="close-btn" type="button">✕</button>
+    </div>
+    <div>
+      <p><strong>ID:</strong> ${audit.audit_id || '—'}</p>
+      <p><strong>Name:</strong> ${audit.audit_name || '—'}</p>
+      <p><strong>Department:</strong> ${audit.dept_audited || '—'}</p>
+      <p><strong>Auditor:</strong> ${audit.auditor || '—'}</p>
+      <p><strong>Date:</strong> ${audit.audit_date ? new Date(audit.audit_date).toLocaleDateString() : '—'}</p>
+      <p><strong>Status:</strong> ${formatStatus((audit.status || '').toLowerCase().trim())}</p>
+    </div>
+    <div class="modal-buttons">
+      <button class="cancel-btn" type="button">Close</button>
+    </div>
+  `;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  overlay.style.display='flex';
+  const close=()=>{ try{ document.body.removeChild(overlay);}catch(e){} };
+  modal.querySelector('.close-btn').onclick=close;
+  modal.querySelector('.cancel-btn').onclick=close;
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) close(); });
+  document.addEventListener('keydown', function onKey(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', onKey); } });
+}
+
+function openAuditEditModal(audit){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal';
+  const modal = document.createElement('div');
+  modal.className = 'modal-content styled-form';
+  modal.innerHTML = `
+    <div class="modal-header">
+      <h3>✏️ Edit Audit</h3>
+      <button class="close-btn" type="button">✕</button>
+    </div>
+    <div>
+      <p><strong>Name:</strong> ${audit.audit_name || ''}</p>
+      <p><strong>Department:</strong> ${audit.dept_audited || ''}</p>
+      <p><strong>Auditor:</strong> ${audit.auditor || ''}</p>
+    </div>
+    <form id="auditEditForm" style="margin-top: 8px;">
+      <label><span>Date</span>
+        <input type="date" name="audit_date" value="${audit.audit_date ? new Date(audit.audit_date).toISOString().slice(0,10) : ''}" required />
+      </label>
+      <label><span>Status</span>
+        <select name="status" required>
+          <option${((audit.status||'').toLowerCase()==='completed')?' selected':''}>Completed</option>
+          <option${((audit.status||'').toLowerCase()==='scheduled')?' selected':''}>Scheduled</option>
+          <option${((audit.status||'').toLowerCase()==='pending')?' selected':''}>Pending</option>
+          <option${((audit.status||'').toLowerCase()==='in progress')?' selected':''}>In Progress</option>
+        </select>
+      </label>
+      <div class="modal-buttons">
+        <button type="button" class="cancel-btn">Cancel</button>
+        <button type="submit" class="upload-btn">Save</button>
+      </div>
+    </form>
+  `;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  overlay.style.display='flex';
+  const close=()=>{ try{ document.body.removeChild(overlay);}catch(e){} };
+  modal.querySelector('.close-btn').onclick=close;
+  modal.querySelector('.cancel-btn').onclick=close;
+  modal.querySelector('#auditEditForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const form = e.target;
+    const payload = {
+      audit_name: audit.audit_name || '',
+      dept_audited: audit.dept_audited || '',
+      auditor: audit.auditor || '',
+      audit_date: form.audit_date.value,
+      status: form.status.value.trim().toLowerCase(),
+      actor: (audit.auditor || 'User')
+    };
+    try{
+      const resp = await fetch(`http://localhost:3000/audits/${encodeURIComponent(audit.audit_id)}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      const result = await resp.json();
+      if(!resp.ok || !result.success){ throw new Error(result.error || 'Failed'); }
+      await loadAudits();
+      await loadActivities();
+      close();
+    }catch(err){
+      alert('Failed to update audit');
+    }
+  });
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) close(); });
+  document.addEventListener('keydown', function onKey(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', onKey); } });
+}
+
+function wireAuditInteractions(){
+  // Filter modal wiring
+  const filterBtn = document.querySelector('.btn.btn-filter');
+  const modal = document.getElementById('auditFilterModal');
+  const form = document.getElementById('auditFilterForm');
+  if (filterBtn && modal && form) {
+    filterBtn.addEventListener('click', () => {
+      document.getElementById('auditFilterDept').value = auditFilters.dept;
+      document.getElementById('auditFilterStatus').value = auditFilters.status;
+      modal.style.display = 'flex';
+    });
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeAuditFilterModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.style.display === 'flex') closeAuditFilterModal(); });
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      auditFilters.dept = document.getElementById('auditFilterDept').value;
+      auditFilters.status = document.getElementById('auditFilterStatus').value.toLowerCase();
+      renderAudits();
+      closeAuditFilterModal();
+    });
+  }
+  // View/Edit delegation
+  const tbody = document.querySelector('tbody');
+  if (tbody) {
+    tbody.addEventListener('click', (e)=>{
+      const viewBtn = e.target.closest('button.btn.view');
+      const editBtn = e.target.closest('button.btn.edit');
+      if (!viewBtn && !editBtn) return;
+      const tr = e.target.closest('tr');
+      const id = tr && tr.getAttribute('data-audit-id');
+      const audit = allAudits.find(a => String(a.audit_id) === String(id));
+      if (!audit) return;
+      if (viewBtn) return openAuditViewModal(audit);
+      if (editBtn) return openAuditEditModal(audit);
+    });
+  }
+}
+
 /* ============================================
    >>> INITIAL LOAD ON PAGE READY <<<
    ============================================ */
 loadAudits();
 loadChart();
+wireAuditInteractions();
 
+loadActivities();

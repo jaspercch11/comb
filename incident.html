@@ -195,7 +195,7 @@
  
    <script>
     let allIncidents = [];
-    let incidentFilters = { status: '', severity: '' };
+    let incidentFilters = { status: '', severity: '', statusMulti: [] };
 
     async function loadIncidents() {
       try {
@@ -214,9 +214,11 @@
         const rSeverity = (r.severity_level || '').toLowerCase();
         const fStatus = (incidentFilters.status || '').toLowerCase();
         const fSeverity = (incidentFilters.severity || '').toLowerCase();
+        const multi = incidentFilters.statusMulti || [];
+        const multiOk = !multi.length || multi.includes(rStatus);
         const statusOk = !fStatus || rStatus === fStatus;
         const severityOk = !fSeverity || rSeverity === fSeverity;
-        return statusOk && severityOk;
+        return multiOk && statusOk && severityOk;
       });
     }
 
@@ -240,33 +242,82 @@
       tbody.innerHTML = rowsHtml;
     }
 
+    function openCardListModal(title, items) {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal';
+      overlay.style.display = 'flex';
+      const content = document.createElement('div');
+      content.className = 'modal-content styled-form';
+      content.style.width = '720px';
+      content.innerHTML = `
+        <div class="modal-header">
+          <h3>${title}</h3>
+          <button class="close-btn" type="button">✕</button>
+        </div>
+        <div style="max-height:80vh; overflow:auto;">
+          <table style="width:100%; border-collapse:collapse;">
+            <thead>
+              <tr>
+                <th style="text-align:left; padding:8px;">Incident Type</th>
+                <th style="text-align:left; padding:8px;">Reported Date</th>
+                <th style="text-align:left; padding:8px;">Status</th>
+                <th style="text-align:left; padding:8px;">Severity</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map(it => `
+                <tr>
+                  <td style=\"padding:8px; border-top:1px solid #eee;\">${it.incident_type || '—'}</td>
+                  <td style=\"padding:8px; border-top:1px solid #eee;\">${it.date_reported || '—'}</td>
+                  <td style=\"padding:8px; border-top:1px solid #eee;\">${it.status || '—'}</td>
+                  <td style=\"padding:8px; border-top:1px solid #eee;\">${it.severity_level || '—'}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      overlay.appendChild(content);
+      document.body.appendChild(overlay);
+      const close = () => { try { document.body.removeChild(overlay); } catch(e){} };
+      content.querySelector('.close-btn').onclick = close;
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+      document.addEventListener('keydown', function onKey(e){ if(e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } });
+    }
+
     function updateCards(rows) {
-      // Normalize helper
       const norm = (v) => (v || '').toLowerCase();
+      const statuses = rows.map(r => norm(r.status));
+      const severities = rows.map(r => norm(r.severity_level));
+
       const counts = {
-        open: 0,
-        critical: 0,
-        inProgress: 0,
-        resolved: 0,
+        open: statuses.filter(s => s === 'open').length,
+        inProgress: statuses.filter(s => s === 'in progress' || s === 'investigating' || s === 'progress').length,
+        resolved: statuses.filter(s => s === 'resolved').length,
+        critical: severities.filter(s => s === 'critical').length,
       };
 
-      rows.forEach(r => {
-        const status = norm(r.status);
-        const severity = norm(r.severity_level);
-        if (status === 'open') counts.open += 1;
-        if (severity === 'critical') counts.critical += 1;
-        if (status === 'in progress' || status === 'investigating' || status === 'progress') counts.inProgress += 1;
-        if (status === 'resolved') counts.resolved += 1;
-      });
+      const mapEls = {
+        cardOpen: { count: counts.open, filter: ['open'] },
+        cardInProgress: { count: counts.inProgress, filter: ['in progress','investigating','progress'] },
+        cardResolved: { count: counts.resolved, filter: ['resolved'] },
+        cardCritical: { count: counts.critical, filter: null },
+      };
 
-      const setText = (id, value) => {
+      Object.entries(mapEls).forEach(([id, cfg]) => {
         const el = document.getElementById(id);
-        if (el) el.textContent = String(value);
-      };
-      setText('cardOpen', counts.open);
-      setText('cardCritical', counts.critical);
-      setText('cardInProgress', counts.inProgress);
-      setText('cardResolved', counts.resolved);
+        if (!el) return;
+        el.textContent = String(cfg.count);
+        const parent = el.closest('.card');
+        if (!parent) return;
+        parent.style.cursor = 'pointer';
+        parent.onclick = () => {
+          const all = rows.slice();
+          const filtered = (cfg.filter && cfg.filter.length)
+            ? all.filter(r => cfg.filter.includes((r.status||'').toLowerCase()))
+            : all.filter(r => (r.severity_level||'').toLowerCase() === 'critical');
+          openCardListModal(id.replace('card','') + ' Incidents', filtered);
+        };
+      });
     }
 
     function openFilterModal() {

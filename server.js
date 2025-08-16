@@ -422,7 +422,7 @@ app.get('/api/documents/:id/view', async (req, res) => {
    >>> REGULATIONS & DASHBOARD API <<<
    ============================================ */
 
-app.get('/api/risks/:id(\\d+)', async (req, res) => {
+app.get('/api/risks/:id', async (req, res) => {
   const { id } = req.params;
   try {
     const riskResult = await auditsDb.query(
@@ -740,7 +740,7 @@ app.get('/api/risks/findings', async (req, res) => {
 });
 
 // Hide a risk from Findings (do not delete DB rows)
-app.put('/api/risks/:id(\\d+)/hide-in-findings', async (req, res) => {
+app.put('/api/risks/:id/hide-in-findings', async (req, res) => {
   const { id } = req.params;
   try {
     await auditsDb.query('UPDATE risks SET hidden_in_findings = TRUE WHERE risk_id = $1', [id]);

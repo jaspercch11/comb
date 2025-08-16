@@ -420,3 +420,34 @@ loadChart();
 wireAuditInteractions();
 
 loadActivities();
+
+// Initialize logout functionality
+initializeLogout();
+
+// Logout functionality
+function initializeLogout() {
+  const userSection = document.getElementById('userSection');
+  const logoutDropdown = document.getElementById('logoutDropdown');
+  
+  if (userSection && logoutDropdown) {
+    // Show logout dropdown on user section click
+    userSection.addEventListener('click', (e) => {
+      e.stopPropagation();
+      logoutDropdown.classList.toggle('show');
+    });
+    
+    // Hide logout dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!userSection.contains(e.target)) {
+        logoutDropdown.classList.remove('show');
+      }
+    });
+  }
+}
+
+// Logout function
+function logout() {
+  // You can add any cleanup logic here (clear session, etc.)
+  window.location.href = 'index.html';
+
+}

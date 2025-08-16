@@ -621,6 +621,383 @@
 			];
 		}
 
+		// Heatmap functionality
+		const categoryFilter = document.getElementById('categoryFilter');
+		const addRiskBtn = document.getElementById('addRiskBtn');
+		
+		// Heatmap risks data - will be loaded from database
+		let heatmapRisks = [];
+
+		// Database API functions for heatmap risks
+		async function fetchHeatmapRisks() {
+			try {
+				const response = await fetch(`${API_BASE}/api/heatmap-risks`);
+				if (!response.ok) throw new Error('Failed to fetch heatmap risks');
+				const risks = await response.json();
+				heatmapRisks = risks;
+				return risks;
+			} catch (error) {
+				console.error('Error fetching heatmap risks:', error);
+				return [];
+			}
+		}
+
+		async function createHeatmapRisk(riskData) {
+			try {
+				const response = await fetch(`${API_BASE}/api/heatmap-risks`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(riskData)
+				});
+				if (!response.ok) throw new Error('Failed to create heatmap risk');
+				return await response.json();
+			} catch (error) {
+				console.error('Error creating heatmap risk:', error);
+				throw error;
+			}
+		}
+
+		async function updateHeatmapRisk(id, riskData) {
+			try {
+				const response = await fetch(`${API_BASE}/api/heatmap-risks/${id}`, {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(riskData)
+				});
+				if (!response.ok) throw new Error('Failed to update heatmap risk');
+				return await response.json();
+			} catch (error) {
+				console.error('Error updating heatmap risk:', error);
+				throw error;
+			}
+		}
+
+		async function deleteHeatmapRisk(id) {
+			try {
+				const response = await fetch(`${API_BASE}/api/heatmap-risks/${id}`, {
+					method: 'DELETE'
+				});
+				if (!response.ok) throw new Error('Failed to delete heatmap risk');
+				return await response.json();
+			} catch (error) {
+				console.error('Error deleting heatmap risk:', error);
+				throw error;
+			}
+		}
+
+		// Function to render the heatmap
+		function renderHeatmap(filter = 'all') {
+			// Clear all risk containers
+			document.querySelectorAll('.risk-container').forEach(container => {
+				container.innerHTML = '';
+			});
+
+			// Filter risks if needed
+			const filteredRisks = filter === 'all' 
+				? heatmapRisks 
+				: heatmapRisks.filter(risk => risk.category === filter);
+
+			// Add risks to their positions
+			filteredRisks.forEach(risk => {
+				const container = document.querySelector(`.heatmap-cell[data-impact="${risk.impact}"][data-likelihood="${risk.likelihood}"] .risk-container`);
+				if (container) {
+					const riskEl = document.createElement('div');
+					riskEl.className = 'risk-item';
+					riskEl.textContent = risk.name;
+					riskEl.dataset.riskId = risk.id;
+					riskEl.title = `${risk.name} - ${risk.dept} (Impact: ${risk.impact}, Likelihood: ${risk.likelihood})`;
+					riskEl.addEventListener('click', () => showRiskDetails(risk.id));
+					
+					container.appendChild(riskEl);
+				}
+			});
+		}
+
+		// Function to show risk details and allow editing
+		function showRiskDetails(riskId) {
+			const risk = heatmapRisks.find(r => r.id === riskId);
+			if (!risk) return;
+
+			// Create modal for editing risk
+			const overlay = document.createElement('div');
+			overlay.className = 'modal-overlay';
+			overlay.style.cssText = `
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0,0,0,0.5);
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				z-index: 1000;
+			`;
+
+			const modal = document.createElement('div');
+			modal.className = 'modal';
+			modal.style.cssText = `
+				background: white;
+				border-radius: 8px;
+				padding: 20px;
+				max-width: 500px;
+				width: 90%;
+				max-height: 80vh;
+				overflow-y: auto;
+			`;
+
+			modal.innerHTML = `
+				<div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+					<h3 style="margin: 0;">Edit Risk</h3>
+					<button class="modal-close" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+				</div>
+				<div class="modal-body">
+					<form id="editRiskForm">
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Risk Name:</label>
+							<input type="text" id="editRiskName" value="${risk.name}" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+						</div>
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Department:</label>
+							<input type="text" id="editRiskDept" value="${risk.dept}" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+						</div>
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Category:</label>
+							<select id="editRiskCategory" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+								<option value="Financial" ${risk.category === 'Financial' ? 'selected' : ''}>Financial</option>
+								<option value="Operational" ${risk.category === 'Operational' ? 'selected' : ''}>Operational</option>
+								<option value="Strategic" ${risk.category === 'Strategic' ? 'selected' : ''}>Strategic</option>
+								<option value="Compliance" ${risk.category === 'Compliance' ? 'selected' : ''}>Compliance</option>
+								<option value="Reputational" ${risk.category === 'Reputational' ? 'selected' : ''}>Reputational</option>
+							</select>
+						</div>
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Impact Level:</label>
+							<select id="editRiskImpact" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+								<option value="1" ${risk.impact === 1 ? 'selected' : ''}>Very Low (1)</option>
+								<option value="2" ${risk.impact === 2 ? 'selected' : ''}>Low (2)</option>
+								<option value="3" ${risk.impact === 3 ? 'selected' : ''}>Medium (3)</option>
+								<option value="4" ${risk.impact === 4 ? 'selected' : ''}>High (4)</option>
+								<option value="5" ${risk.impact === 5 ? 'selected' : ''}>Very High (5)</option>
+							</select>
+						</div>
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Likelihood Level:</label>
+							<select id="editRiskLikelihood" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+								<option value="1" ${risk.likelihood === 1 ? 'selected' : ''}>Very Low (1)</option>
+								<option value="2" ${risk.likelihood === 2 ? 'selected' : ''}>Low (2)</option>
+								<option value="3" ${risk.likelihood === 3 ? 'selected' : ''}>Medium (3)</option>
+								<option value="4" ${risk.likelihood === 4 ? 'selected' : ''}>High (4)</option>
+								<option value="5" ${risk.likelihood === 5 ? 'selected' : ''}>Very High (5)</option>
+							</select>
+						</div>
+					</form>
+				</div>
+				<div class="modal-actions" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+					<button class="btn" onclick="closeEditModal()" style="padding: 8px 16px; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa; cursor: pointer;">Cancel</button>
+					<button class="btn btn-primary" onclick="updateRisk(${risk.id})" style="padding: 8px 16px; border: none; border-radius: 4px; background: #1E5ADC; color: white; cursor: pointer;">Update Risk</button>
+					<button class="btn" onclick="deleteRisk(${risk.id})" style="padding: 8px 16px; border: 1px solid #dc3545; border-radius: 4px; background: #fff; color: #dc3545; cursor: pointer;">Delete Risk</button>
+				</div>
+			`;
+
+			overlay.appendChild(modal);
+			document.body.appendChild(overlay);
+
+			// Close modal functionality
+			const closeModal = () => {
+				try { document.body.removeChild(overlay); } catch(e){}
+			};
+
+			modal.querySelector('.modal-close').onclick = closeModal;
+			overlay.addEventListener('click', (e) => { if(e.target === overlay) closeModal(); });
+			document.addEventListener('keydown', function onKey(e) { if(e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', onKey); } });
+
+			// Make functions globally accessible
+			window.closeEditModal = closeModal;
+			window.updateRisk = updateRisk;
+			window.deleteRisk = deleteRisk;
+		}
+
+		// Function to add new risk
+		function openAddRiskModal() {
+			const overlay = document.createElement('div');
+			overlay.className = 'modal-overlay';
+			overlay.style.cssText = `
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0,0,0,0.5);
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				z-index: 1000;
+			`;
+
+			const modal = document.createElement('div');
+			modal.className = 'modal';
+			modal.style.cssText = `
+				background: white;
+				border-radius: 8px;
+				padding: 20px;
+				max-width: 500px;
+				width: 90%;
+				max-height: 80vh;
+				overflow-y: auto;
+			`;
+
+			modal.innerHTML = `
+				<div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+					<h3 style="margin: 0;">Add New Risk</h3>
+					<button class="modal-close" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+				</div>
+				<div class="modal-body">
+					<form id="addRiskForm">
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Risk Name:</label>
+							<input type="text" id="addRiskName" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+						</div>
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Department:</label>
+							<input type="text" id="addRiskDept" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+						</div>
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Category:</label>
+							<select id="addRiskCategory" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+								<option value="Financial">Financial</option>
+								<option value="Operational">Operational</option>
+								<option value="Strategic">Strategic</option>
+								<option value="Compliance">Compliance</option>
+								<option value="Reputational">Reputational</option>
+							</select>
+						</div>
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Impact Level:</label>
+							<select id="addRiskImpact" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+								<option value="1">Very Low (1)</option>
+								<option value="2">Low (2)</option>
+								<option value="3">Medium (3)</option>
+								<option value="4">High (4)</option>
+								<option value="5">Very High (5)</option>
+							</select>
+						</div>
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Likelihood Level:</label>
+							<select id="addRiskLikelihood" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+								<option value="1">Very Low (1)</option>
+								<option value="2">Low (2)</option>
+								<option value="3">Medium (3)</option>
+								<option value="4">High (4)</option>
+								<option value="5">Very High (5)</option>
+							</select>
+						</div>
+					</form>
+				</div>
+				<div class="modal-actions" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+					<button class="btn" onclick="closeAddModal()" style="padding: 8px 16px; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa; cursor: pointer;">Cancel</button>
+					<button class="btn btn-primary" onclick="submitAddRisk()" style="padding: 8px 16px; border: none; border-radius: 4px; background: #1E5ADC; color: white; cursor: pointer;">Add Risk</button>
+				</div>
+			`;
+
+			overlay.appendChild(modal);
+			document.body.appendChild(overlay);
+
+			// Close modal functionality
+			const closeModal = () => {
+				try { document.body.removeChild(overlay); } catch(e){}
+			};
+
+			modal.querySelector('.modal-close').onclick = closeModal;
+			overlay.addEventListener('click', (e) => { if(e.target === overlay) closeModal(); });
+			document.addEventListener('keydown', function onKey(e) { if(e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', onKey); } });
+
+			// Make functions globally accessible
+			window.closeAddModal = closeModal;
+			window.submitAddRisk = submitAddRisk;
+		}
+
+		// Function to submit new risk
+		async function submitAddRisk() {
+			const name = document.getElementById('addRiskName').value;
+			const dept = document.getElementById('addRiskDept').value;
+			const category = document.getElementById('addRiskCategory').value;
+			const impact = parseInt(document.getElementById('addRiskImpact').value);
+			const likelihood = parseInt(document.getElementById('addRiskLikelihood').value);
+
+			if (!name || !dept) {
+				alert('Please fill in all required fields');
+				return;
+			}
+
+			try {
+				const newRisk = await createHeatmapRisk({
+					name: name,
+					dept: dept,
+					category: category,
+					impact: impact,
+					likelihood: likelihood
+				});
+
+				// Refresh the risks list and re-render
+				await fetchHeatmapRisks();
+				renderHeatmap(categoryFilter.value);
+				closeAddModal();
+			} catch (error) {
+				alert('Error adding risk: ' + error.message);
+			}
+		}
+
+		// Function to update existing risk
+		async function updateRisk(riskId) {
+			const risk = heatmapRisks.find(r => r.id === riskId);
+			if (!risk) return;
+
+			const name = document.getElementById('editRiskName').value;
+			const dept = document.getElementById('editRiskDept').value;
+			const category = document.getElementById('editRiskCategory').value;
+			const impact = parseInt(document.getElementById('editRiskImpact').value);
+			const likelihood = parseInt(document.getElementById('editRiskLikelihood').value);
+
+			if (!name || !dept) {
+				alert('Please fill in all required fields');
+				return;
+			}
+
+			try {
+				await updateHeatmapRisk(riskId, {
+					name: name,
+					dept: dept,
+					category: category,
+					impact: impact,
+					likelihood: likelihood
+				});
+
+				// Refresh the risks list and re-render
+				await fetchHeatmapRisks();
+				renderHeatmap(categoryFilter.value);
+				closeEditModal();
+			} catch (error) {
+				alert('Error updating risk: ' + error.message);
+			}
+		}
+
+		// Function to delete risk
+		async function deleteRisk(riskId) {
+			if (confirm('Are you sure you want to delete this risk?')) {
+				try {
+					await deleteHeatmapRisk(riskId);
+					
+					// Refresh the risks list and re-render
+					await fetchHeatmapRisks();
+					renderHeatmap(categoryFilter.value);
+					closeEditModal();
+				} catch (error) {
+					alert('Error deleting risk: ' + error.message);
+				}
+			}
+		}
+
 		// Function to fetch and display all risks in the table
 		async function loadRisks() {
 			const res = await fetch('http://localhost:3000/api/risks');
@@ -675,5 +1052,55 @@
 			// On page load, display all risks for this form page
 			window.onload = loadRisks;
 		}
+
+		// Initialize heatmap functionality
+		if (categoryFilter) {
+			categoryFilter.addEventListener('change', (e) => {
+				renderHeatmap(e.target.value);
+			});
+		}
+
+		// Initialize Add Risk button
+		if (addRiskBtn) {
+			addRiskBtn.addEventListener('click', openAddRiskModal);
+		}
+
+		// Initialize heatmap on page load
+		document.addEventListener('DOMContentLoaded', async () => {
+			// Load risks from database first
+			await fetchHeatmapRisks();
+			renderHeatmap();
+			
+			// Initialize logout functionality
+			initializeLogout();
+		});
+
+		// Logout functionality
+		function initializeLogout() {
+			const userSection = document.getElementById('userSection');
+			const logoutDropdown = document.getElementById('logoutDropdown');
+			
+			if (userSection && logoutDropdown) {
+				// Show logout dropdown on user section click
+				userSection.addEventListener('click', (e) => {
+					e.stopPropagation();
+					logoutDropdown.classList.toggle('show');
+				});
+				
+				// Hide logout dropdown when clicking outside
+				document.addEventListener('click', (e) => {
+					if (!userSection.contains(e.target)) {
+						logoutDropdown.classList.remove('show');
+					}
+				});
+			}
+		}
+
+		// Logout function
+		function logout() {
+			// You can add any cleanup logic here (clear session, etc.)
+			window.location.href = 'index.html';
+		}
+
 
 	})();

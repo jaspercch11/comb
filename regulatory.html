@@ -23,11 +23,14 @@
         </ul>
       </nav>
     </div>
-    <div class="user">
+    <div class="user" id="userSection">
       <span>👤</span>
       <div>
         <strong>Jasper John Dreo</strong>
         <small>Compliance</small>
+      </div>
+      <div class="logout-dropdown" id="logoutDropdown">
+        <button class="logout-btn" onclick="logout()">🚪 Logout</button>
       </div>
     </div>
   </div>
@@ -52,7 +55,7 @@
             <div class="row">
                 <div class="left">
                     <div class="pending-header">
-                      <h2>Compliance Status by Department</h2>
+                      <h2>Risk Distribution by Department</h2>
                       <div>
                                                  <button id="deptFilterBtn" class="btn btn-primary">🔍 Filter</button>
                       </div>
@@ -74,82 +77,25 @@
             </div>
 
             <section class="table">
-                <h2>Active Regulations</h2>
+                <div class="table-header">
+                    <h2>Active Regulations</h2>
+                    <button id="addRegulationBtn" class="btn btn-primary">➕ Add New Regulation</button>
+                </div>
                 <table>
                     <thead>
                         <tr>
                             <th>Regulation Name</th>
                             <th>Department</th>
                             <th>Status</th>
+                            <th>Risk Level</th>
                             <th>Last Review</th>
                             <th>Next Review</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="regsBody"></tbody>
                 </table>
             </section>
-
-           <div class="badges">
-        <h2>Regulations Overview</h2>
-        <div class="grid" id="regsGrid">
-            <div class="badge-item">
-            <div class="card-badge" data-code="SOX">
-                <img src="img/SOX.png" alt="SOX" class="badge-logo" />
-                <div class="label">SOX - SARBANES-OXLEY ACT</div>
-            </div>
-            </div>
-
-            <div class="badge-item">
-            <div class="card-badge" data-code="AML">
-                <img src="img/AML.png" alt="AML" class="badge-logo" />
-                <div class="label">AML - ANTI-MONEY LAUNDERING</div>
-            </div>
-            </div>
-
-             <div class="badge-item">
-            <div class="card-badge" data-code="BIR">
-                <img src="img/BIR.png" alt="BIR" class="badge-logo" />
-                <div class="label">BIR</div>
-            </div>
-            </div>
-
-             <div class="badge-item">
-            <div class="card-badge" data-code="ISO">
-                <img src="img/ISO.png" alt="ISO" class="badge-logo" />
-                <div class="label">ISO</div>
-            </div>
-            </div>
-
-             <div class="badge-item">
-            <div class="card-badge" data-code="GDPR">
-                <img src="img/GDPR.png" alt="GDPR" class="badge-logo" />
-                <div class="label">GDPR</div>
-            </div>
-            </div>
-
-             <div class="badge-item">
-            <div class="card-badge" data-code="FDA">
-                <img src="img/FDA.png" alt="FDA" class="badge-logo" />
-                <div class="label">FDA</div>
-            </div>
-            </div>
-
-             <div class="badge-item">
-            <div class="card-badge" data-code="ECA">
-                <img src="img/ECA.png" alt="ECA" class="badge-logo" />
-                <div class="label">ECA</div>
-            </div>
-            </div>
-
-             <div class="badge-item">
-            <div class="card-badge" data-code="DPA">
-                <img src="img/DPA.png" alt="DPA" class="badge-logo" />
-                <div class="label">DPA</div>
-            </div>
-            </div>
-            
-        </div>
-        </div>
 
 
 
@@ -160,6 +106,7 @@
     <script src="regulatory.js"></script>
   </body>
 </html>
+
 
 
 

@@ -44,6 +44,22 @@ const auditsDb = pool;
       dept TEXT
     )`);
     await pool.query(`ALTER TABLE activities ADD COLUMN IF NOT EXISTS dept TEXT`);
+    
+    // Create heatmap risks table
+    await pool.query(`CREATE TABLE IF NOT EXISTS heatmap_risks (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      dept TEXT NOT NULL,
+      category TEXT NOT NULL,
+      impact INTEGER NOT NULL CHECK (impact >= 1 AND impact <= 5),
+      likelihood INTEGER NOT NULL CHECK (likelihood >= 1 AND likelihood <= 5),
+      description TEXT,
+      mitigation TEXT,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    )`);
+    
+    console.log('Database schema updated successfully');
   } catch (e) {
     console.warn('ensureSchema skipped or failed:', e?.message || e);
   }
@@ -921,5 +937,129 @@ app.get('/activities', async (req, res) => {
   } catch (e) {
     console.error('Fetch activities failed', e);
     res.status(500).json({ error: 'Failed to fetch activities' });
+  }
+});
+
+// =================== HEATMAP RISKS API ===================
+
+// GET all heatmap risks
+app.get('/api/heatmap-risks', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, name, dept, category, impact, likelihood, description, mitigation, 
+             created_at, updated_at
+      FROM heatmap_risks 
+      ORDER BY created_at DESC
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching heatmap risks:', error);
+    res.status(500).json({ error: 'Failed to fetch heatmap risks.' });
+  }
+});
+
+// GET a single heatmap risk
+app.get('/api/heatmap-risks/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(`
+      SELECT id, name, dept, category, impact, likelihood, description, mitigation, 
+             created_at, updated_at
+      FROM heatmap_risks 
+      WHERE id = $1
+    `, [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Heatmap risk not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching heatmap risk:', error);
+    res.status(500).json({ error: 'Failed to fetch heatmap risk.' });
+  }
+});
+
+// POST create new heatmap risk
+app.post('/api/heatmap-risks', async (req, res) => {
+  const { name, dept, category, impact, likelihood, description, mitigation } = req.body;
+  
+  if (!name || !dept || !category || !impact || !likelihood) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  
+  if (impact < 1 || impact > 5 || likelihood < 1 || likelihood > 5) {
+    return res.status(400).json({ error: 'Impact and likelihood must be between 1 and 5' });
+  }
+  
+  try {
+    const result = await pool.query(`
+      INSERT INTO heatmap_risks (name, dept, category, impact, likelihood, description, mitigation)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id, name, dept, category, impact, likelihood, description, mitigation, created_at, updated_at
+    `, [name, dept, category, impact, likelihood, description || null, mitigation || null]);
+    
+    logActivity(`Heatmap risk created: ${name}`, dept);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating heatmap risk:', error);
+    res.status(500).json({ error: 'Failed to create heatmap risk.' });
+  }
+});
+
+// PUT update heatmap risk
+app.put('/api/heatmap-risks/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, dept, category, impact, likelihood, description, mitigation } = req.body;
+  
+  if (!name || !dept || !category || !impact || !likelihood) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  
+  if (impact < 1 || impact > 5 || likelihood < 1 || likelihood > 5) {
+    return res.status(400).json({ error: 'Impact and likelihood must be between 1 and 5' });
+  }
+  
+  try {
+    const result = await pool.query(`
+      UPDATE heatmap_risks 
+      SET name = $2, dept = $3, category = $4, impact = $5, likelihood = $6, 
+          description = $7, mitigation = $8, updated_at = now()
+      WHERE id = $1
+      RETURNING id, name, dept, category, impact, likelihood, description, mitigation, created_at, updated_at
+    `, [id, name, dept, category, impact, likelihood, description || null, mitigation || null]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Heatmap risk not found' });
+    }
+    
+    logActivity(`Heatmap risk updated: ${name}`, dept);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating heatmap risk:', error);
+    res.status(500).json({ error: 'Failed to update heatmap risk.' });
+  }
+});
+
+// DELETE heatmap risk
+app.delete('/api/heatmap-risks/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(`
+      DELETE FROM heatmap_risks 
+      WHERE id = $1
+      RETURNING name, dept
+    `, [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Heatmap risk not found' });
+    }
+    
+    const { name, dept } = result.rows[0];
+    logActivity(`Heatmap risk deleted: ${name}`, dept);
+    res.json({ success: true, message: `Risk "${name}" deleted successfully` });
+  } catch (error) {
+    console.error('Error deleting heatmap risk:', error);
+    res.status(500).json({ error: 'Failed to delete heatmap risk.' });
   }
 });

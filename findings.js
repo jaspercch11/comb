@@ -623,18 +623,11 @@
 
 		// Heatmap functionality
 		const categoryFilter = document.getElementById('categoryFilter');
+		const addRiskBtn = document.getElementById('addRiskBtn');
 		
-		// Sample risk data with impact and likelihood scores
-		let heatmapRisks = [
-			{ id: 1, name: 'Data Breach Risk', impact: 5, likelihood: 4, category: 'Compliance', dept: 'IT' },
-			{ id: 2, name: 'Supply Chain Disruption', impact: 4, likelihood: 3, category: 'Operational', dept: 'Operations' },
-			{ id: 3, name: 'Phishing Attack', impact: 3, likelihood: 5, category: 'Compliance', dept: 'IT' },
-			{ id: 4, name: 'Budget Overrun', impact: 3, likelihood: 2, category: 'Financial', dept: 'Finance' },
-			{ id: 5, name: 'Regulatory Non-compliance', impact: 5, likelihood: 2, category: 'Compliance', dept: 'Legal' },
-			{ id: 6, name: 'Employee Turnover', impact: 2, likelihood: 4, category: 'Operational', dept: 'HR' },
-			{ id: 7, name: 'Market Competition', impact: 4, likelihood: 1, category: 'Strategic', dept: 'Strategy' },
-			{ id: 8, name: 'Technology Failure', impact: 4, likelihood: 3, category: 'Operational', dept: 'IT' }
-		];
+		// Empty risk data array - will be populated by user
+		let heatmapRisks = [];
+		let riskCounter = 1;
 
 		// Function to render the heatmap
 		function renderHeatmap(filter = 'all') {
@@ -664,13 +657,271 @@
 			});
 		}
 
-		// Function to show risk details (placeholder for now)
+		// Function to show risk details and allow editing
 		function showRiskDetails(riskId) {
 			const risk = heatmapRisks.find(r => r.id === riskId);
 			if (!risk) return;
 
-			// For now, just show an alert. In a full implementation, this would open a modal
-			alert(`Risk: ${risk.name}\nDepartment: ${risk.dept}\nCategory: ${risk.category}\nImpact: ${risk.impact}\nLikelihood: ${risk.likelihood}\nRisk Score: ${risk.impact * risk.likelihood}`);
+			// Create modal for editing risk
+			const overlay = document.createElement('div');
+			overlay.className = 'modal-overlay';
+			overlay.style.cssText = `
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0,0,0,0.5);
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				z-index: 1000;
+			`;
+
+			const modal = document.createElement('div');
+			modal.className = 'modal';
+			modal.style.cssText = `
+				background: white;
+				border-radius: 8px;
+				padding: 20px;
+				max-width: 500px;
+				width: 90%;
+				max-height: 80vh;
+				overflow-y: auto;
+			`;
+
+			modal.innerHTML = `
+				<div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+					<h3 style="margin: 0;">Edit Risk</h3>
+					<button class="modal-close" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+				</div>
+				<div class="modal-body">
+					<form id="editRiskForm">
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Risk Name:</label>
+							<input type="text" id="editRiskName" value="${risk.name}" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+						</div>
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Department:</label>
+							<input type="text" id="editRiskDept" value="${risk.dept}" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+						</div>
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Category:</label>
+							<select id="editRiskCategory" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+								<option value="Financial" ${risk.category === 'Financial' ? 'selected' : ''}>Financial</option>
+								<option value="Operational" ${risk.category === 'Operational' ? 'selected' : ''}>Operational</option>
+								<option value="Strategic" ${risk.category === 'Strategic' ? 'selected' : ''}>Strategic</option>
+								<option value="Compliance" ${risk.category === 'Compliance' ? 'selected' : ''}>Compliance</option>
+								<option value="Reputational" ${risk.category === 'Reputational' ? 'selected' : ''}>Reputational</option>
+							</select>
+						</div>
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Impact Level:</label>
+							<select id="editRiskImpact" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+								<option value="1" ${risk.impact === 1 ? 'selected' : ''}>Very Low (1)</option>
+								<option value="2" ${risk.impact === 2 ? 'selected' : ''}>Low (2)</option>
+								<option value="3" ${risk.impact === 3 ? 'selected' : ''}>Medium (3)</option>
+								<option value="4" ${risk.impact === 4 ? 'selected' : ''}>High (4)</option>
+								<option value="5" ${risk.impact === 5 ? 'selected' : ''}>Very High (5)</option>
+							</select>
+						</div>
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Likelihood Level:</label>
+							<select id="editRiskLikelihood" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+								<option value="1" ${risk.likelihood === 1 ? 'selected' : ''}>Very Low (1)</option>
+								<option value="2" ${risk.likelihood === 2 ? 'selected' : ''}>Low (2)</option>
+								<option value="3" ${risk.likelihood === 3 ? 'selected' : ''}>Medium (3)</option>
+								<option value="4" ${risk.likelihood === 4 ? 'selected' : ''}>High (4)</option>
+								<option value="5" ${risk.likelihood === 5 ? 'selected' : ''}>Very High (5)</option>
+							</select>
+						</div>
+					</form>
+				</div>
+				<div class="modal-actions" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+					<button class="btn" onclick="closeEditModal()" style="padding: 8px 16px; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa; cursor: pointer;">Cancel</button>
+					<button class="btn btn-primary" onclick="updateRisk(${risk.id})" style="padding: 8px 16px; border: none; border-radius: 4px; background: #1E5ADC; color: white; cursor: pointer;">Update Risk</button>
+					<button class="btn" onclick="deleteRisk(${risk.id})" style="padding: 8px 16px; border: 1px solid #dc3545; border-radius: 4px; background: #fff; color: #dc3545; cursor: pointer;">Delete Risk</button>
+				</div>
+			`;
+
+			overlay.appendChild(modal);
+			document.body.appendChild(overlay);
+
+			// Close modal functionality
+			const closeModal = () => {
+				try { document.body.removeChild(overlay); } catch(e){}
+			};
+
+			modal.querySelector('.modal-close').onclick = closeModal;
+			overlay.addEventListener('click', (e) => { if(e.target === overlay) closeModal(); });
+			document.addEventListener('keydown', function onKey(e) { if(e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', onKey); } });
+
+			// Make functions globally accessible
+			window.closeEditModal = closeModal;
+			window.updateRisk = updateRisk;
+			window.deleteRisk = deleteRisk;
+		}
+
+		// Function to add new risk
+		function openAddRiskModal() {
+			const overlay = document.createElement('div');
+			overlay.className = 'modal-overlay';
+			overlay.style.cssText = `
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0,0,0,0.5);
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				z-index: 1000;
+			`;
+
+			const modal = document.createElement('div');
+			modal.className = 'modal';
+			modal.style.cssText = `
+				background: white;
+				border-radius: 8px;
+				padding: 20px;
+				max-width: 500px;
+				width: 90%;
+				max-height: 80vh;
+				overflow-y: auto;
+			`;
+
+			modal.innerHTML = `
+				<div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+					<h3 style="margin: 0;">Add New Risk</h3>
+					<button class="modal-close" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+				</div>
+				<div class="modal-body">
+					<form id="addRiskForm">
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Risk Name:</label>
+							<input type="text" id="addRiskName" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+						</div>
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Department:</label>
+							<input type="text" id="addRiskDept" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+						</div>
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Category:</label>
+							<select id="addRiskCategory" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+								<option value="Financial">Financial</option>
+								<option value="Operational">Operational</option>
+								<option value="Strategic">Strategic</option>
+								<option value="Compliance">Compliance</option>
+								<option value="Reputational">Reputational</option>
+							</select>
+						</div>
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Impact Level:</label>
+							<select id="addRiskImpact" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+								<option value="1">Very Low (1)</option>
+								<option value="2">Low (2)</option>
+								<option value="3">Medium (3)</option>
+								<option value="4">High (4)</option>
+								<option value="5">Very High (5)</option>
+							</select>
+						</div>
+						<div style="margin-bottom: 15px;">
+							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Likelihood Level:</label>
+							<select id="addRiskLikelihood" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+								<option value="1">Very Low (1)</option>
+								<option value="2">Low (2)</option>
+								<option value="3">Medium (3)</option>
+								<option value="4">High (4)</option>
+								<option value="5">Very High (5)</option>
+							</select>
+						</div>
+					</form>
+				</div>
+				<div class="modal-actions" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+					<button class="btn" onclick="closeAddModal()" style="padding: 8px 16px; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa; cursor: pointer;">Cancel</button>
+					<button class="btn btn-primary" onclick="submitAddRisk()" style="padding: 8px 16px; border: none; border-radius: 4px; background: #1E5ADC; color: white; cursor: pointer;">Add Risk</button>
+				</div>
+			`;
+
+			overlay.appendChild(modal);
+			document.body.appendChild(overlay);
+
+			// Close modal functionality
+			const closeModal = () => {
+				try { document.body.removeChild(overlay); } catch(e){}
+			};
+
+			modal.querySelector('.modal-close').onclick = closeModal;
+			overlay.addEventListener('click', (e) => { if(e.target === overlay) closeModal(); });
+			document.addEventListener('keydown', function onKey(e) { if(e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', onKey); } });
+
+			// Make functions globally accessible
+			window.closeAddModal = closeModal;
+			window.submitAddRisk = submitAddRisk;
+		}
+
+		// Function to submit new risk
+		function submitAddRisk() {
+			const name = document.getElementById('addRiskName').value;
+			const dept = document.getElementById('addRiskDept').value;
+			const category = document.getElementById('addRiskCategory').value;
+			const impact = parseInt(document.getElementById('addRiskImpact').value);
+			const likelihood = parseInt(document.getElementById('addRiskLikelihood').value);
+
+			if (!name || !dept) {
+				alert('Please fill in all required fields');
+				return;
+			}
+
+			const newRisk = {
+				id: riskCounter++,
+				name: name,
+				dept: dept,
+				category: category,
+				impact: impact,
+				likelihood: likelihood
+			};
+
+			heatmapRisks.push(newRisk);
+			renderHeatmap(categoryFilter.value);
+			closeAddModal();
+		}
+
+		// Function to update existing risk
+		function updateRisk(riskId) {
+			const risk = heatmapRisks.find(r => r.id === riskId);
+			if (!risk) return;
+
+			const name = document.getElementById('editRiskName').value;
+			const dept = document.getElementById('editRiskDept').value;
+			const category = document.getElementById('editRiskCategory').value;
+			const impact = parseInt(document.getElementById('editRiskImpact').value);
+			const likelihood = parseInt(document.getElementById('editRiskLikelihood').value);
+
+			if (!name || !dept) {
+				alert('Please fill in all required fields');
+				return;
+			}
+
+			// Update risk properties
+			risk.name = name;
+			risk.dept = dept;
+			risk.category = category;
+			risk.impact = impact;
+			risk.likelihood = likelihood;
+
+			renderHeatmap(categoryFilter.value);
+			closeEditModal();
+		}
+
+		// Function to delete risk
+		function deleteRisk(riskId) {
+			if (confirm('Are you sure you want to delete this risk?')) {
+				heatmapRisks = heatmapRisks.filter(r => r.id !== riskId);
+				renderHeatmap(categoryFilter.value);
+				closeEditModal();
+			}
 		}
 
 		// Function to fetch and display all risks in the table
@@ -733,6 +984,11 @@
 			categoryFilter.addEventListener('change', (e) => {
 				renderHeatmap(e.target.value);
 			});
+		}
+
+		// Initialize Add Risk button
+		if (addRiskBtn) {
+			addRiskBtn.addEventListener('click', openAddRiskModal);
 		}
 
 		// Initialize heatmap on page load

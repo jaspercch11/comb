@@ -32,6 +32,15 @@ const pool = new Pool({
 
 const auditsDb = pool;
 
+// Ensure optional schema for filtering UI-created risks
+(async function ensureSchema(){
+  try {
+    await pool.query(`ALTER TABLE risks ADD COLUMN IF NOT EXISTS created_via TEXT`);
+  } catch (e) {
+    console.warn('ensureSchema skipped or failed:', e?.message || e);
+  }
+})();
+
 // ---- Helpers used in risk routes ----
 async function computeRiskProgress(riskId) {
   const { rows } = await auditsDb.query(
@@ -605,11 +614,21 @@ app.post('/api/risks', async (req, res) => {
     if (!risk_title) return res.status(400).json({ error: 'risk_title is required' });
 
     // Insert risk
-    const r = await auditsDb.query(
-      `INSERT INTO risks (risk_title, dept, review_date)
-       VALUES ($1, $2, $3) RETURNING risk_id AS id, risk_title, dept, review_date`,
-      [risk_title, dept || null, review_date || null]
-    );
+    let r;
+    try {
+      r = await auditsDb.query(
+        `INSERT INTO risks (risk_title, dept, review_date, created_via)
+         VALUES ($1, $2, $3, 'ui') RETURNING risk_id AS id, risk_title, dept, review_date`,
+        [risk_title, dept || null, review_date || null]
+      );
+    } catch (e) {
+      // Fallback if created_via column doesn't exist
+      r = await auditsDb.query(
+        `INSERT INTO risks (risk_title, dept, review_date)
+         VALUES ($1, $2, $3) RETURNING risk_id AS id, risk_title, dept, review_date`,
+        [risk_title, dept || null, review_date || null]
+      );
+    }
     const risk = r.rows[0];
 
     // Insert tasks if provided (or leave empty)
@@ -681,6 +700,36 @@ app.get('/api/risks', async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching risks:', error);
+    res.status(500).json({ error: 'Failed to fetch risks.' });
+  }
+});
+
+// Only UI-created risks (used by Findings UI to prevent auto-synced entries)
+app.get('/api/risks/ui', async (req, res) => {
+  try {
+    const result = await auditsDb.query(`
+      SELECT
+        r.risk_id AS id,
+        r.risk_title,
+        r.dept,
+        r.review_date,
+        COALESCE(
+          ROUND(
+            CASE WHEN SUM(rt.weight) > 0
+              THEN SUM(CASE WHEN rt.done THEN rt.weight ELSE 0 END)::float / SUM(rt.weight) * 100
+              ELSE 0 END
+          ), 0
+        ) AS progress,
+        'on track' AS status
+      FROM risks r
+      LEFT JOIN risk_tasks rt ON r.risk_id = rt.risk_id
+      WHERE COALESCE(r.created_via, '') = 'ui'
+      GROUP BY r.risk_id
+      ORDER BY r.review_date ASC
+    `);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching UI risks:', error);
     res.status(500).json({ error: 'Failed to fetch risks.' });
   }
 });

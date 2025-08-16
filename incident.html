@@ -400,7 +400,10 @@
             };
             const res = await fetch('/api/risks', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
             if(!res.ok) throw new Error('Failed to send');
-            alert('Sent to Risk Register');
+            await fetch(`/api/incidents/${incident.incident_id}/status`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status: 'Investigating' }) });
+            await loadIncidents();
+            renderIncidents();
+            alert('Sent to Risk Register. Status set to Investigating.');
             closeViewModal();
           }catch(err){
             console.error(err);

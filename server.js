@@ -274,6 +274,22 @@ app.post("/audits", async (req, res) => {
   }
 });
 
+app.put('/audits/:id', async (req, res) => {
+  const { id } = req.params;
+  const { audit_name, dept_audited, auditor, audit_date, status } = req.body;
+  try {
+    const result = await pool.query(
+      `UPDATE audits SET audit_name=$2, dept_audited=$3, auditor=$4, audit_date=$5, status=$6 WHERE audit_id=$1 RETURNING *`,
+      [id, audit_name, dept_audited, auditor, audit_date, status]
+    );
+    if (!result.rowCount) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, audit: result.rows[0] });
+  } catch (e) {
+    console.error('Update audit error:', e);
+    res.status(500).json({ success: false, error: 'Failed to update audit' });
+  }
+});
+
 // =================== INCIDENT ROUTES ===================
 app.get("/api/incidents", async (req, res) => {
   try {

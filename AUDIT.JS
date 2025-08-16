@@ -320,9 +320,48 @@ function openAuditEditModal(audit){
   document.addEventListener('keydown', function onKey(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', onKey); } });
 }
 
+function wireAuditInteractions(){
+  // Filter modal wiring
+  const filterBtn = document.querySelector('.btn.btn-filter');
+  const modal = document.getElementById('auditFilterModal');
+  const form = document.getElementById('auditFilterForm');
+  if (filterBtn && modal && form) {
+    filterBtn.addEventListener('click', () => {
+      document.getElementById('auditFilterDept').value = auditFilters.dept;
+      document.getElementById('auditFilterStatus').value = auditFilters.status;
+      modal.style.display = 'flex';
+    });
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeAuditFilterModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.style.display === 'flex') closeAuditFilterModal(); });
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      auditFilters.dept = document.getElementById('auditFilterDept').value;
+      auditFilters.status = document.getElementById('auditFilterStatus').value.toLowerCase();
+      renderAudits();
+      closeAuditFilterModal();
+    });
+  }
+  // View/Edit delegation
+  const tbody = document.querySelector('tbody');
+  if (tbody) {
+    tbody.addEventListener('click', (e)=>{
+      const viewBtn = e.target.closest('button.btn.view');
+      const editBtn = e.target.closest('button.btn.edit');
+      if (!viewBtn && !editBtn) return;
+      const tr = e.target.closest('tr');
+      const id = tr && tr.getAttribute('data-audit-id');
+      const audit = allAudits.find(a => String(a.audit_id) === String(id));
+      if (!audit) return;
+      if (viewBtn) return openAuditViewModal(audit);
+      if (editBtn) return openAuditEditModal(audit);
+    });
+  }
+}
+
 /* ============================================
    >>> INITIAL LOAD ON PAGE READY <<<
    ============================================ */
 loadAudits();
 loadChart();
+wireAuditInteractions();
 

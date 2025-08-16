@@ -313,45 +313,13 @@
     document.addEventListener('keydown', function onKey(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', onKey); } });
   }
 
-  function badgePopups(){
-    const info={
-      SOX: 'Sarbanes-Oxley Act (SOX) establishes auditing and financial regulations for public companies to protect shareholders and the general public. It mandates internal controls and reporting accuracy.',
-      AML: 'Anti-Money Laundering (AML) comprises laws and regulations to prevent criminals from disguising illegally obtained funds as legitimate income.',
-      GDPR: 'General Data Protection Regulation (GDPR) is the EU law on data protection and privacy, providing individuals control over their personal data.',
-      ISO: 'ISO standards ensure quality, safety, and efficiency across products, services, and systems.',
-      FDA: 'Food and Drug Administration (FDA) regulates food, drugs, medical devices, cosmetics and more to ensure safety and efficacy.',
-      DPA: 'Data Privacy Act provides protection of personal information collected by organizations.',
-      BIR: 'Bureau of Internal Revenue regulations for taxation compliance and reporting.',
-      ECA: 'ECA outlines consumer protection and trade compliance frameworks.'
-    };
-    document.querySelectorAll('.card-badge').forEach(el=>{
-      el.addEventListener('click', ()=>{
-        const code=el.getAttribute('data-code');
-        const overlay=document.createElement('div');
-        overlay.className='modal-overlay';
-        const modal=document.createElement('div');
-        modal.className='modal';
-        modal.innerHTML=`
-          <div class="modal-header"><h3>${code} Overview</h3><button class="modal-close">&times;</button></div>
-          <div class="modal-body"><p>${info[code]||'No description available.'}</p></div>
-          <div class="modal-actions"><button class="btn btn-primary">Close</button></div>
-        `;
-        overlay.appendChild(modal);
-        document.body.appendChild(overlay);
-        overlay.style.display='flex';
-        const close=()=>document.body.removeChild(overlay);
-        modal.querySelector('.modal-close').onclick=close;
-        modal.querySelector('.btn').onclick=close;
-      });
-    });
-  }
+
 
   async function load(){
     const regs = await fetchRegs();
     renderRegs(regs);
     renderTopCards(regs);
     renderPending(await fetchPending());
-    badgePopups();
     await populateDeptFilter();
     
     // Add event listener for Add New Regulation button

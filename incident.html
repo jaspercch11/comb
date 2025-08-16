@@ -161,6 +161,10 @@
        <p><strong>Department:</strong> <span id="viewDepartment"></span></p>
        <p><strong>Description:</strong> <span id="viewDescription"></span></p>
        <p><strong>Evidence:</strong> <span id="viewEvidence"></span></p>
+       <div class="modal-buttons">
+         <button type="button" class="cancel-btn" onclick="closeViewModal()">Close</button>
+         <button type="button" class="upload-btn" id="sendToRiskBtn">Send to Risk</button>
+       </div>
      </div>
    </div>
  
@@ -386,6 +390,23 @@
         } else {
           evSpan.textContent = '—';
         }
+        document.getElementById('sendToRiskBtn').onclick = async ()=>{
+          try{
+            const payload = {
+              risk_title: (incident.incident_type || 'Incident').slice(0,200),
+              dept: incident.department || 'Unassigned',
+              review_date: incident.date_reported || new Date().toISOString().slice(0,10),
+              tasks: []
+            };
+            const res = await fetch('/api/risks', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+            if(!res.ok) throw new Error('Failed to send');
+            alert('Sent to Risk Register');
+            closeViewModal();
+          }catch(err){
+            console.error(err);
+            alert('Failed to send to Risk');
+          }
+        };
         document.getElementById('viewIncidentModal').style.display = 'flex';
       });
 

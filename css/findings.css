@@ -23,6 +23,7 @@
       justify-content: space-between;
       padding: 20px 0;
     }
+
     .sidebar .logo {
       display: flex;
       align-items: center;
@@ -30,33 +31,37 @@
       margin-left: 20px;
       margin-bottom: 30px;
     }
+
     .sidebar .logo img {
       width: 40px;
-      height: auto;
     }
+
     .sidebar .logo strong {
       font-weight: 700;
       font-size: 18px;
-      color: #004080;
+      color: #B87AF1;
     }
+
     .sidebar nav ul {
       list-style: none;
       padding: 0;
       margin: 0 0 40px 0;
     }
+
     .sidebar nav ul li {
       padding: 14px 20px;
-      font-size: 15px;
       display: flex;
       align-items: center;
       gap: 10px;
       font-weight: 500;
     }
+
     .sidebar nav ul li a {
       text-decoration: none;
       color: #111;
       flex-grow: 1;
     }
+
     .sidebar nav ul li:hover,
     .sidebar nav ul li.active {
       background: #E9D8F0;
@@ -68,15 +73,15 @@
       align-items: center;
       gap: 12px;
       margin-left: 20px;
-      color: #222;
     }
+
     .sidebar .user span {
       font-size: 24px;
     }
+
     .sidebar .user strong {
-      font-weight: 600;
-      font-size: 14px;
       display: block;
+      font-weight: 600;
     }
 
     /* Main content */

@@ -22,7 +22,7 @@
       
       // Use database status if available, otherwise calculate based on review dates
       let status = r.status;
-      if (!status || status === 'Active') {
+      if (!status) {
         const daysUntil = nextReview ? Math.floor((new Date(nextReview).getTime() - nowMs) / (1000*60*60*24)) : null;
         status = daysUntil !== null && daysUntil < 0 ? 'non-compliant' : 'compliant';
       }

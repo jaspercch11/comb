@@ -6,7 +6,7 @@
     body {
       margin: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(to right, #c084fc, #818cf8);
+      background: linear-gradient(135deg, #c471f5, #6a93ff);
       color: #111;
     }
 
@@ -138,30 +138,25 @@
       flex-direction: column;
       min-height: 100vh;
     }
-  /* Top Bar */
-  .topbar {
-    background: #F3E4F9;
-    height: 60px;
-    border-radius: 8px;
-    color: #111;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 24px;
-    margin-bottom: 20px;
-    box-sizing: border-box;
-  }
-  .topbar h1 {
-    font-weight: 700;
-    font-size: 18px;
-    color: black;
-    margin: 0;
-  }
-  .topbar .bell {
-    font-size: 24px;
-    cursor: pointer;
-    color: #111;
-  }
+  
+    header {
+      background-color: white;
+      padding: 14px 20px;
+      border-radius: 8px;
+      font-size: 20px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .bell-icon {
+      width: 24px;
+      height: 24px;
+      fill: #111;
+    }
+
 
   /* Card Container */
   .card {

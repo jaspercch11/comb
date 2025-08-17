@@ -62,7 +62,7 @@
       
       tr.innerHTML = `
         <td>${r.name}</td>
-        <td>${r.department || 'Not Assigned'}</td>
+        <td>${Array.isArray(r.departments) ? r.departments.join(', ') : (r.department || 'Not Assigned')}</td>
         <td><span class="${statusClass}">${r.status}</span></td>
         <td><span class="${riskLevelClass}">${riskLevel}</span></td>
         <td>${r.last_review ? new Date(r.last_review).toISOString().slice(0,10) : 'Not Reviewed'}</td>
@@ -207,8 +207,8 @@
     if (inner) {
       const container = inner.parentElement;
       const containerWidth = container ? container.clientWidth : 0;
-      // Ensure enough width for labels and bars
-      const dynamicWidth = Math.max(containerWidth, labels.length * perCategoryWidth + labelPadding);
+      const minWidth = 700;
+      const dynamicWidth = Math.max(minWidth, labels.length * perCategoryWidth + labelPadding);
       inner.style.width = dynamicWidth + 'px';
     }
 
@@ -222,7 +222,8 @@
             data: counts,
             backgroundColor: '#ef5350',
             borderColor: '#d32f2f',
-            borderWidth: 1
+            borderWidth: 1,
+            maxBarThickness: 60
           }
         ]
       },
@@ -232,7 +233,7 @@
         scales: { 
           y: { 
             beginAtZero: true, 
-            ticks: { precision: 0 },
+            ticks: { precision: 0, font: { size: 13 } },
             title: {
               display: true,
               text: 'Number of Risks'
@@ -247,11 +248,11 @@
               // Prevent label rotation - keep them horizontal
               maxRotation: 0,
               minRotation: 0,
-              // Auto-skip labels if they overlap
-              autoSkip: true,
+              // Show all labels even if they overlap
+              autoSkip: false,
               // Ensure labels are readable
               font: {
-                size: 11
+                size: 13
               },
               // Add some padding between bars and labels
               padding: 8,
@@ -272,10 +273,11 @@
           }
         },
         plugins: { 
-          legend: { position: 'top' },
+          legend: { position: 'top', labels: { font: { size: 12 } } },
           title: {
             display: true,
-            text: currentDeptFilter ? `Risk Distribution - ${currentDeptFilter}` : 'Risk Distribution by Department'
+            text: currentDeptFilter ? `Risk Distribution - ${currentDeptFilter}` : 'Risk Distribution by Department',
+            font: { size: 18 }
           }
         },
         // Ensure proper spacing between bars
@@ -284,7 +286,7 @@
             left: 20,
             right: 20,
             top: 20,
-            bottom: 40 // Increased bottom padding for labels
+            bottom: 72 // Increased bottom padding for labels
           }
         },
         // Ensure bars are properly spaced
@@ -520,7 +522,7 @@
     document.addEventListener('keydown', function onKey(e) { if(e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } });
   };
 
-  function openAddRegulationModal() {
+  async function openAddRegulationModal() {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     const modal = document.createElement('div');
@@ -534,8 +536,9 @@
             <input type="text" id="regName" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
           </div>
           <div style="margin-bottom: 15px;">
-            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Department:</label>
-            <input type="text" id="regDepartment" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Department(s):</label>
+            <div id="deptMultiContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            <button type="button" id="addDeptRowBtn" class="btn" style="width: auto;">+ Add Department</button>
           </div>
           <div style="margin-bottom: 15px;">
             <label style="display: block; font-weight: 600; margin-bottom: 5px;">Status:</label>
@@ -574,7 +577,100 @@
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
     overlay.style.display = 'flex';
-    
+
+    // Populate departments from audit.html's New form options
+    try {
+      const resp = await fetch('audit.html');
+      const html = await resp.text();
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      const deptSelect = tmp.querySelector('#department');
+      const opts = deptSelect ? Array.from(deptSelect.querySelectorAll('option')) : [];
+      const choices = opts
+        .map(o => o.textContent.trim())
+        .filter(v => v && v.toLowerCase() !== 'select department');
+      const fallback = (Array.isArray(deptChoices) ? deptChoices : []).filter(v => v);
+      const source = (choices.length ? choices : fallback).filter((v, i, a) => a.indexOf(v) === i);
+
+      const container = modal.querySelector('#deptMultiContainer');
+      const addBtn = modal.querySelector('#addDeptRowBtn');
+
+      function getSelectedValues(){
+        return Array.from(container.querySelectorAll('.regDeptSelect'))
+          .map(sel => sel.value)
+          .filter(Boolean);
+      }
+
+      function updateAddBtnState(){
+        const selects = Array.from(container.querySelectorAll('.regDeptSelect'));
+        const selectedCount = getSelectedValues().length;
+        const available = source.length - selectedCount;
+        const hasUnchosen = selects.some(sel => !sel.value);
+        if (addBtn){
+          addBtn.disabled = available <= 0 || hasUnchosen;
+          addBtn.style.opacity = addBtn.disabled ? '0.6' : '1';
+          addBtn.style.cursor = addBtn.disabled ? 'not-allowed' : 'pointer';
+        }
+      }
+
+      function refreshAllSelects(){
+        const selected = getSelectedValues();
+        const selects = Array.from(container.querySelectorAll('.regDeptSelect'));
+        selects.forEach(sel => {
+          const current = sel.value;
+          Array.from(sel.options).forEach(opt => {
+            if (opt.value === '') { opt.disabled = false; return; }
+            opt.disabled = selected.includes(opt.value) && opt.value !== current;
+          });
+          // Keep placeholder if nothing chosen; otherwise ensure current remains valid
+          if (!current) {
+            sel.value = '';
+          } else if (sel.selectedOptions[0] && sel.selectedOptions[0].disabled) {
+            const firstAvail = Array.from(sel.options).find(o => !o.disabled && o.value !== '');
+            sel.value = firstAvail ? firstAvail.value : '';
+          }
+        });
+        updateAddBtnState();
+      }
+
+      function createRow() {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.gap = '8px';
+        row.innerHTML = `
+          <select class="regDeptSelect" style="flex:1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <option value="" disabled selected>Select Department</option>
+            ${source.map(v => `<option value="${v}">${v}</option>`).join('')}
+          </select>
+          <button type="button" class="btn" data-role="remove" style="background:#eee;">✕</button>
+        `;
+        const sel = row.querySelector('.regDeptSelect');
+        sel.addEventListener('change', refreshAllSelects);
+        const removeBtn = row.querySelector('[data-role="remove"]');
+        removeBtn.addEventListener('click', () => {
+          container.removeChild(row);
+          refreshAllSelects();
+          ensureAtLeastOneRow();
+        });
+        container.appendChild(row);
+        // Ensure placeholder remains if no selection yet
+        refreshAllSelects();
+      }
+
+      function ensureAtLeastOneRow(){
+        if (!container.querySelector('.regDeptSelect')) {
+          createRow();
+        } else {
+          refreshAllSelects();
+        }
+      }
+
+      if (container && addBtn && source.length) {
+        addBtn.addEventListener('click', createRow);
+        createRow();
+      }
+    } catch (_) { /* ignore */ }
+
     const close = () => { try { document.body.removeChild(overlay); } catch(e){} };
     modal.querySelector('.modal-close').onclick = close;
     overlay.addEventListener('click', (e) => { if(e.target === overlay) close(); });
@@ -595,20 +691,20 @@
 
   async function submitAddRegulation() {
     const name = document.getElementById('regName').value;
-    const department = document.getElementById('regDepartment').value;
+    const departments = Array.from(document.querySelectorAll('.regDeptSelect')).map(s => s.value).filter(Boolean);
     const status = document.getElementById('regStatus').value;
     const riskLevel = document.getElementById('regRiskLevel').value;
     const lastReview = document.getElementById('regLastReview').value;
     const nextReview = document.getElementById('regNextReview').value;
     
-    if (!name || !department || !nextReview) {
+    if (!name || !departments.length || !nextReview) {
       alert('Please fill in all required fields');
       return;
     }
     
     try {
       // This would typically send data to your backend API
-      // For now, we'll just show a success message and close the modal
+      // For demo, just show success and close modal
       alert('Regulation added successfully! (This is a demo - data would be saved to database in production)');
       closeAddRegulationModal();
       
@@ -626,10 +722,10 @@
     const inner = document.querySelector('.chart-inner');
     if (!inner) return;
     const labels = (window._regComplianceChart && window._regComplianceChart.data && window._regComplianceChart.data.labels) || [];
-    const container = inner.parentElement;
-    const containerWidth = container ? container.clientWidth : 0;
-    const perCategoryWidth = 110;
-    const dynamicWidth = Math.max(containerWidth, labels.length * perCategoryWidth);
+    const perCategoryWidth = 140;
+    const labelPadding = 20;
+    const minWidth = 700;
+    const dynamicWidth = Math.max(minWidth, labels.length * perCategoryWidth + labelPadding);
     inner.style.width = dynamicWidth + 'px';
   });
 })();

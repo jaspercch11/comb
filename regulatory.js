@@ -594,6 +594,39 @@
 
       const container = modal.querySelector('#deptMultiContainer');
       const addBtn = modal.querySelector('#addDeptRowBtn');
+
+      function getSelectedValues(){
+        return Array.from(container.querySelectorAll('.regDeptSelect'))
+          .map(sel => sel.value)
+          .filter(Boolean);
+      }
+
+      function updateAddBtnState(){
+        const available = source.length - getSelectedValues().length;
+        if (addBtn){
+          addBtn.disabled = available <= 0;
+          addBtn.style.opacity = addBtn.disabled ? '0.6' : '1';
+          addBtn.style.cursor = addBtn.disabled ? 'not-allowed' : 'pointer';
+        }
+      }
+
+      function refreshAllSelects(){
+        const selected = getSelectedValues();
+        const selects = Array.from(container.querySelectorAll('.regDeptSelect'));
+        selects.forEach(sel => {
+          const current = sel.value;
+          Array.from(sel.options).forEach(opt => {
+            opt.disabled = selected.includes(opt.value) && opt.value !== current;
+          });
+          // If current became disabled or empty, pick first available
+          if (!current || (sel.selectedOptions[0] && sel.selectedOptions[0].disabled)){
+            const firstAvail = Array.from(sel.options).find(o => !o.disabled);
+            if (firstAvail){ sel.value = firstAvail.value; }
+          }
+        });
+        updateAddBtnState();
+      }
+
       function createRow() {
         const row = document.createElement('div');
         row.style.display = 'flex';
@@ -604,18 +637,30 @@
           </select>
           <button type="button" class="btn" data-role="remove" style="background:#eee;">✕</button>
         `;
+        const sel = row.querySelector('.regDeptSelect');
+        sel.addEventListener('change', refreshAllSelects);
         const removeBtn = row.querySelector('[data-role="remove"]');
         removeBtn.addEventListener('click', () => {
           container.removeChild(row);
+          refreshAllSelects();
           ensureAtLeastOneRow();
         });
         container.appendChild(row);
+        // Assign first available value for new row
+        refreshAllSelects();
+        const firstAvail = Array.from(sel.options).find(o => !o.disabled);
+        if (firstAvail){ sel.value = firstAvail.value; }
+        refreshAllSelects();
       }
+
       function ensureAtLeastOneRow(){
         if (!container.querySelector('.regDeptSelect')) {
           createRow();
+        } else {
+          refreshAllSelects();
         }
       }
+
       if (container && addBtn && source.length) {
         addBtn.addEventListener('click', createRow);
         createRow();

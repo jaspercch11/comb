@@ -207,7 +207,7 @@
     if (inner) {
       const container = inner.parentElement;
       const containerWidth = container ? container.clientWidth : 0;
-      const minWidth = 300;
+      const minWidth = 700;
       const dynamicWidth = Math.max(minWidth, labels.length * perCategoryWidth + labelPadding);
       inner.style.width = dynamicWidth + 'px';
     }
@@ -628,7 +628,7 @@
     const labels = (window._regComplianceChart && window._regComplianceChart.data && window._regComplianceChart.data.labels) || [];
     const perCategoryWidth = 140;
     const labelPadding = 20;
-    const minWidth = 300;
+    const minWidth = 700;
     const dynamicWidth = Math.max(minWidth, labels.length * perCategoryWidth + labelPadding);
     inner.style.width = dynamicWidth + 'px';
   });

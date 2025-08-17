@@ -79,30 +79,14 @@
       card.style.cursor = 'pointer';
       card.style.transition = 'transform 0.2s ease, box-shadow 0.2s ease';
       
-      // Add click indicator
-      const clickIndicator = document.createElement('div');
-      clickIndicator.style.cssText = `
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        font-size: 10px;
-        color: #666;
-        opacity: 0.7;
-      `;
-      clickIndicator.textContent = 'Click to view';
-      card.style.position = 'relative';
-      card.appendChild(clickIndicator);
-      
       card.addEventListener('mouseenter', () => {
         card.style.transform = 'translateY(-2px)';
         card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-        clickIndicator.style.opacity = '1';
       });
       
       card.addEventListener('mouseleave', () => {
         card.style.transform = 'translateY(0)';
         card.style.boxShadow = '';
-        clickIndicator.style.opacity = '0.7';
       });
     });
   }

@@ -68,21 +68,16 @@
     cardInProgress.textContent = inProgress + investigating; // Show combined count
     cardResolved.textContent = resolved;
 
-    // Make cards clickable
-    cardOpen.onclick = () => showIncidentsByStatus('Open', incidents);
-    cardCritical.onclick = () => showIncidentsBySeverity('Critical', incidents);
-    cardInProgress.onclick = () => showIncidentsByStatus(['In Progress', 'Investigating'], incidents);
-    cardResolved.onclick = () => showIncidentsByStatus('Resolved', incidents);
-
-    // Add clickable styling to the whole cards
+    // Add clickable styling and click handlers to the whole cards
     const cardElements = document.querySelectorAll('.card');
-    cardElements.forEach(card => {
+    cardElements.forEach((card, index) => {
       card.style.cursor = 'pointer';
       card.style.transition = 'transform 0.2s ease, box-shadow 0.2s ease';
       
       // Store the original box-shadow
       const originalBoxShadow = card.style.boxShadow || '0 2px 8px rgba(0,0,0,0.08)';
       
+      // Add hover effects
       card.addEventListener('mouseenter', () => {
         card.style.transform = 'translateY(-2px)';
         card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
@@ -91,6 +86,24 @@
       card.addEventListener('mouseleave', () => {
         card.style.transform = 'translateY(0)';
         card.style.boxShadow = originalBoxShadow;
+      });
+      
+      // Add click handlers based on card index
+      card.addEventListener('click', () => {
+        switch(index) {
+          case 0: // Open Incidents
+            showIncidentsByStatus('Open', incidents);
+            break;
+          case 1: // Critical Priority
+            showIncidentsBySeverity('Critical', incidents);
+            break;
+          case 2: // In Progress
+            showIncidentsByStatus(['In Progress', 'Investigating'], incidents);
+            break;
+          case 3: // Resolved
+            showIncidentsByStatus('Resolved', incidents);
+            break;
+        }
       });
     });
   }

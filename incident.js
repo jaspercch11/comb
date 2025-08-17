@@ -279,7 +279,6 @@
         <th style="text-align: left; padding: 12px; border-bottom: 2px solid #eee; background: #f8f9fa;">Status</th>
         <th style="text-align: left; padding: 12px; border-bottom: 2px solid #eee; background: #f8f9fa;">Severity</th>
         <th style="text-align: left; padding: 12px; border-bottom: 2px solid #eee; background: #f8f9fa;">Department</th>
-        <th style="text-align: left; padding: 12px; border-bottom: 2px solid #eee; background: #f8f9fa;">Actions</th>
       </tr>
     `;
 
@@ -288,7 +287,7 @@
     if (incidents.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="6" style="text-align: center; padding: 20px; color: #666;">
+          <td colspan="5" style="text-align: center; padding: 20px; color: #666;">
             No incidents found in this category
           </td>
         </tr>
@@ -307,10 +306,6 @@
           <td style="padding: 12px;"><span class="status-badge ${statusClass}">${incident.status || 'Open'}</span></td>
           <td style="padding: 12px;"><span class="severity-badge ${severityClass}">${incident.severity_level || 'Medium'}</span></td>
           <td style="padding: 12px;">${incident.department || 'N/A'}</td>
-          <td style="padding: 12px;">
-            <button class="btn btn-view" onclick="viewIncident(${incident.incident_id})" style="margin-right: 5px;">View</button>
-            <button class="btn btn-edit" onclick="editIncidentStatus(${incident.incident_id})">Edit</button>
-          </td>
         `;
         
         tbody.appendChild(tr);

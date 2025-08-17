@@ -602,9 +602,12 @@
       }
 
       function updateAddBtnState(){
-        const available = source.length - getSelectedValues().length;
+        const selects = Array.from(container.querySelectorAll('.regDeptSelect'));
+        const selectedCount = getSelectedValues().length;
+        const available = source.length - selectedCount;
+        const hasUnchosen = selects.some(sel => !sel.value);
         if (addBtn){
-          addBtn.disabled = available <= 0;
+          addBtn.disabled = available <= 0 || hasUnchosen;
           addBtn.style.opacity = addBtn.disabled ? '0.6' : '1';
           addBtn.style.cursor = addBtn.disabled ? 'not-allowed' : 'pointer';
         }
@@ -616,12 +619,15 @@
         selects.forEach(sel => {
           const current = sel.value;
           Array.from(sel.options).forEach(opt => {
+            if (opt.value === '') { opt.disabled = false; return; }
             opt.disabled = selected.includes(opt.value) && opt.value !== current;
           });
-          // If current became disabled or empty, pick first available
-          if (!current || (sel.selectedOptions[0] && sel.selectedOptions[0].disabled)){
-            const firstAvail = Array.from(sel.options).find(o => !o.disabled);
-            if (firstAvail){ sel.value = firstAvail.value; }
+          // Keep placeholder if nothing chosen; otherwise ensure current remains valid
+          if (!current) {
+            sel.value = '';
+          } else if (sel.selectedOptions[0] && sel.selectedOptions[0].disabled) {
+            const firstAvail = Array.from(sel.options).find(o => !o.disabled && o.value !== '');
+            sel.value = firstAvail ? firstAvail.value : '';
           }
         });
         updateAddBtnState();
@@ -633,6 +639,7 @@
         row.style.gap = '8px';
         row.innerHTML = `
           <select class="regDeptSelect" style="flex:1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <option value="" disabled selected>Select Department</option>
             ${source.map(v => `<option value="${v}">${v}</option>`).join('')}
           </select>
           <button type="button" class="btn" data-role="remove" style="background:#eee;">✕</button>
@@ -646,10 +653,7 @@
           ensureAtLeastOneRow();
         });
         container.appendChild(row);
-        // Assign first available value for new row
-        refreshAllSelects();
-        const firstAvail = Array.from(sel.options).find(o => !o.disabled);
-        if (firstAvail){ sel.value = firstAvail.value; }
+        // Ensure placeholder remains if no selection yet
         refreshAllSelects();
       }
 

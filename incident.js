@@ -59,13 +59,52 @@
   function updateDashboardCards(incidents) {
     const open = incidents.filter(i => i.status === 'Open').length;
     const critical = incidents.filter(i => i.severity_level === 'Critical').length;
-    const inProgress = incidents.filter(i => i.status === 'In Progress' || i.status === 'Investigating').length;
+    const investigating = incidents.filter(i => i.status === 'Investigating').length;
+    const inProgress = incidents.filter(i => i.status === 'In Progress').length;
     const resolved = incidents.filter(i => i.status === 'Resolved').length;
 
     cardOpen.textContent = open;
     cardCritical.textContent = critical;
-    cardInProgress.textContent = inProgress;
+    cardInProgress.textContent = inProgress + investigating; // Show combined count
     cardResolved.textContent = resolved;
+
+    // Make cards clickable
+    cardOpen.onclick = () => showIncidentsByStatus('Open', incidents);
+    cardCritical.onclick = () => showIncidentsBySeverity('Critical', incidents);
+    cardInProgress.onclick = () => showIncidentsByStatus(['In Progress', 'Investigating'], incidents);
+    cardResolved.onclick = () => showIncidentsByStatus('Resolved', incidents);
+
+    // Add clickable styling
+    [cardOpen, cardCritical, cardInProgress, cardResolved].forEach(card => {
+      card.style.cursor = 'pointer';
+      card.style.transition = 'transform 0.2s ease, box-shadow 0.2s ease';
+      
+      // Add click indicator
+      const clickIndicator = document.createElement('div');
+      clickIndicator.style.cssText = `
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        font-size: 10px;
+        color: #666;
+        opacity: 0.7;
+      `;
+      clickIndicator.textContent = 'Click to view';
+      card.style.position = 'relative';
+      card.appendChild(clickIndicator);
+      
+      card.addEventListener('mouseenter', () => {
+        card.style.transform = 'translateY(-2px)';
+        card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        clickIndicator.style.opacity = '1';
+      });
+      
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'translateY(0)';
+        card.style.boxShadow = '';
+        clickIndicator.style.opacity = '0.7';
+      });
+    });
   }
 
   function renderIncidents(incidents = allIncidents) {
@@ -142,6 +181,172 @@
   function resetFilters() {
     currentFilters = { status: '', severity: '' };
     renderIncidents();
+  }
+
+  // Functions to show incidents by category
+  function showIncidentsByStatus(status, incidents = allIncidents) {
+    let filteredIncidents;
+    if (Array.isArray(status)) {
+      filteredIncidents = incidents.filter(i => status.includes(i.status));
+    } else {
+      filteredIncidents = incidents.filter(i => i.status === status);
+    }
+    showIncidentsModal(filteredIncidents, `Incidents - ${Array.isArray(status) ? status.join(' & ') : status}`);
+  }
+
+  function showIncidentsBySeverity(severity, incidents = allIncidents) {
+    const filteredIncidents = incidents.filter(i => i.severity_level === severity);
+    showIncidentsModal(filteredIncidents, `Incidents - ${severity} Priority`);
+  }
+
+  function showIncidentsModal(incidents, title) {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'modal';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    `;
+
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.className = 'modal-content styled-form';
+    modal.style.cssText = `
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 90%;
+      width: 800px;
+      max-height: 80vh;
+      overflow-y: auto;
+    `;
+
+    // Create modal header
+    const header = document.createElement('div');
+    header.className = 'modal-header';
+    header.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    `;
+
+    const titleEl = document.createElement('h3');
+    titleEl.textContent = title;
+    titleEl.style.margin = '0';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.className = 'close-btn';
+    closeBtn.style.cssText = `
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 5px 10px;
+      border-radius: 4px;
+    `;
+    closeBtn.onclick = () => document.body.removeChild(overlay);
+
+    header.appendChild(titleEl);
+    header.appendChild(closeBtn);
+
+    // Create incidents table
+    const table = document.createElement('table');
+    table.style.cssText = `
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    `;
+
+    // Table header
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+      <tr>
+        <th style="text-align: left; padding: 12px; border-bottom: 2px solid #eee; background: #f8f9fa;">Incident Type</th>
+        <th style="text-align: left; padding: 12px; border-bottom: 2px solid #eee; background: #f8f9fa;">Date Reported</th>
+        <th style="text-align: left; padding: 12px; border-bottom: 2px solid #eee; background: #f8f9fa;">Status</th>
+        <th style="text-align: left; padding: 12px; border-bottom: 2px solid #eee; background: #f8f9fa;">Severity</th>
+        <th style="text-align: left; padding: 12px; border-bottom: 2px solid #eee; background: #f8f9fa;">Department</th>
+        <th style="text-align: left; padding: 12px; border-bottom: 2px solid #eee; background: #f8f9fa;">Actions</th>
+      </tr>
+    `;
+
+    // Table body
+    const tbody = document.createElement('tbody');
+    if (incidents.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align: center; padding: 20px; color: #666;">
+            No incidents found in this category
+          </td>
+        </tr>
+      `;
+    } else {
+      incidents.forEach(incident => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid #eee';
+        
+        const statusClass = getStatusClass(incident.status);
+        const severityClass = getSeverityClass(incident.severity_level);
+        
+        tr.innerHTML = `
+          <td style="padding: 12px;">${incident.incident_type || 'N/A'}</td>
+          <td style="padding: 12px;">${incident.date_reported ? new Date(incident.date_reported).toLocaleDateString() : 'N/A'}</td>
+          <td style="padding: 12px;"><span class="status-badge ${statusClass}">${incident.status || 'Open'}</span></td>
+          <td style="padding: 12px;"><span class="severity-badge ${severityClass}">${incident.severity_level || 'Medium'}</span></td>
+          <td style="padding: 12px;">${incident.department || 'N/A'}</td>
+          <td style="padding: 12px;">
+            <button class="btn btn-view" onclick="viewIncident(${incident.incident_id})" style="margin-right: 5px;">View</button>
+            <button class="btn btn-edit" onclick="editIncidentStatus(${incident.incident_id})">Edit</button>
+          </td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+    }
+
+    table.appendChild(thead);
+    table.appendChild(tbody);
+
+    // Add summary
+    const summary = document.createElement('div');
+    summary.style.cssText = `
+      margin-top: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      border-left: 4px solid #007bff;
+    `;
+    summary.innerHTML = `
+      <strong>Summary:</strong> ${incidents.length} incident${incidents.length !== 1 ? 's' : ''} found
+    `;
+
+    // Assemble modal
+    modal.appendChild(header);
+    modal.appendChild(table);
+    modal.appendChild(summary);
+    overlay.appendChild(modal);
+
+    // Add click outside to close
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        document.body.removeChild(overlay);
+      }
+    });
+
+    // Add to page
+    document.body.appendChild(overlay);
   }
 
   // Modal functions

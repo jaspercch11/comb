@@ -207,8 +207,8 @@
     if (inner) {
       const container = inner.parentElement;
       const containerWidth = container ? container.clientWidth : 0;
-      // Ensure enough width for labels and bars
-      const dynamicWidth = Math.max(containerWidth, labels.length * perCategoryWidth + labelPadding);
+      const minWidth = 300;
+      const dynamicWidth = Math.max(minWidth, labels.length * perCategoryWidth + labelPadding);
       inner.style.width = dynamicWidth + 'px';
     }
 
@@ -626,10 +626,10 @@
     const inner = document.querySelector('.chart-inner');
     if (!inner) return;
     const labels = (window._regComplianceChart && window._regComplianceChart.data && window._regComplianceChart.data.labels) || [];
-    const container = inner.parentElement;
-    const containerWidth = container ? container.clientWidth : 0;
-    const perCategoryWidth = 110;
-    const dynamicWidth = Math.max(containerWidth, labels.length * perCategoryWidth);
+    const perCategoryWidth = 140;
+    const labelPadding = 20;
+    const minWidth = 300;
+    const dynamicWidth = Math.max(minWidth, labels.length * perCategoryWidth + labelPadding);
     inner.style.width = dynamicWidth + 'px';
   });
 })();

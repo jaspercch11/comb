@@ -621,3 +621,22 @@
 .content .left {
   padding-right: 10px;
 }
+
+/* Center chart horizontally when it doesn't overflow */
+.chart-scroll {
+  display: flex;
+  justify-content: center;
+}
+.chart-inner {
+  margin-left: auto;
+  margin-right: auto;
+}
+#complianceChart {
+  margin-left: auto;
+  margin-right: auto;
+}
+/* Allow inner to shrink so it can be centered */
+.chart-inner {
+  min-width: 0;
+  width: auto;
+}

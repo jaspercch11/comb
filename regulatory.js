@@ -388,7 +388,7 @@
 
   async function fetchNotifications(){
     try{
-      const res = await fetch('http://localhost:3000/api/notifications');
+      const res = await fetch('http://localhost:3000/api/notif');
       if(!res.ok) return [];
       const list = await res.json();
       return Array.isArray(list) ? list : [];
@@ -437,7 +437,7 @@
 
     async function refreshBadge(){
       try{
-        const res = await fetch('http://localhost:3000/api/notifications/count');
+        const res = await fetch('http://localhost:3000/api/notif/count');
         const data = await res.json();
         const count = Number(data.count)||0;
         if(count>0){ badge.style.display='inline-block'; badge.textContent = String(count); }

@@ -805,6 +805,47 @@ app.get('/api/notifications/count', async (req, res) => {
   }
 });
 
+// Lightweight endpoints that read directly from 'notif' table
+app.get('/api/notif', async (req, res) => {
+  try {
+    const out = await auditsDb.query(`
+      SELECT id, title, message, dept, sender, is_read, created_at
+      FROM notif
+      ORDER BY created_at DESC
+      LIMIT 50
+    `);
+    const items = out.rows.map(r => ({
+      id: `notif-${r.id}`,
+      type: 'notification',
+      title: r.title,
+      message: r.message,
+      date: r.created_at,
+      dept: r.dept,
+      sender_dept: r.sender,
+      sender_user: r.sender,
+      is_read: r.is_read,
+      priority: undefined,
+      action_required: false,
+      action_url: null,
+      isSystem: false
+    }));
+    res.json(items);
+  } catch (e) {
+    console.error('Failed to fetch notif table:', e);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
+app.get('/api/notif/count', async (req, res) => {
+  try {
+    const out = await auditsDb.query(`SELECT COUNT(*) AS count FROM notif WHERE is_read = false`);
+    res.json({ count: parseInt(out.rows[0].count, 10) || 0 });
+  } catch (e) {
+    console.error('Failed to count notif table:', e);
+    res.status(500).json({ error: 'Failed to get count' });
+  }
+});
+
 // POST /api/risks  -> create a risk and (optionally) tasks
 app.post('/api/risks', async (req, res) => {
   try {

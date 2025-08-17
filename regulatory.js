@@ -248,8 +248,8 @@
               // Prevent label rotation - keep them horizontal
               maxRotation: 0,
               minRotation: 0,
-              // Auto-skip labels if they overlap
-              autoSkip: true,
+              // Show all labels even if they overlap
+              autoSkip: false,
               // Ensure labels are readable
               font: {
                 size: 13
@@ -286,7 +286,7 @@
             left: 20,
             right: 20,
             top: 20,
-            bottom: 56 // Increased bottom padding for labels
+            bottom: 72 // Increased bottom padding for labels
           }
         },
         // Ensure bars are properly spaced

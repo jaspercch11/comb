@@ -511,3 +511,5 @@ function logout() {
 
 
 }
+// Expose globally for sidebar onclick (defensive)
+try { window.logout = logout; } catch(_){}

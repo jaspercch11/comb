@@ -516,6 +516,8 @@
     // You can add any cleanup logic here (clear session, etc.)
     window.location.href = 'index.html';
   }
+  // Expose globally for sidebar onclick
+  try { window.logout = logout; } catch(_){}
 
   if(viewAllLink){
     viewAllLink.addEventListener('click', async (e)=>{

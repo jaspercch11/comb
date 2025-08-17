@@ -1267,6 +1267,9 @@
 			window.location.href = 'index.html';
 		}
 
+		// Expose globally for sidebar onclick
+		try { window.logout = logout; } catch(_){}
+
 		// Placeholder functions for risk actions
 		window.viewRisk = function(riskId) {
 			alert(`View risk ${riskId} - Functionality coming soon!`);

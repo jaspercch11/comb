@@ -156,6 +156,43 @@
       width: 24px;
       height: 24px;
       fill: #111;
+      position: relative;
+      cursor: pointer;
+      transition: fill 0.2s ease;
+    }
+
+    .bell-icon:hover {
+      fill: #666;
+    }
+
+    .notification-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: #f44336;
+      color: white;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      border: 2px solid white;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.1);
+      }
+      100% {
+        transform: scale(1);
+      }
     }
 
     /* Metrics Row */
@@ -389,5 +426,6 @@
 .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 .upload-btn { background: linear-gradient(135deg, #c471f5, #6a93ff); color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; }
 .cancel-btn { background: #e5e7eb; color: #111; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+
 
 

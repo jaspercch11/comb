@@ -640,3 +640,7 @@
   min-width: 0;
   width: auto;
 }
+/* Slightly increase height only for the chart panel */
+.content .left {
+  height: 440px;
+}

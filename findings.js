@@ -1,9 +1,6 @@
 	(function () {
-		const tableBody = document.getElementById('risksTableBody');
-		const modalRoot = document.getElementById('modalRoot');
-		const newBtn = document.querySelector('.new-btn');
+		let tableBody, modalRoot, newBtn, filterBtn;
 		const API_BASE = 'http://localhost:3000';
-		const filterBtn = document.querySelector('.filter-btn');
 		const filterState = { name: '', dept: '', order: 'asc' }; // order by due date
 
 		function cryptoRandomId() {
@@ -81,7 +78,15 @@
 
 		async function render() {
 			try {
+				console.log('🔄 Rendering risks table...');
+				if (!tableBody) {
+					console.error('❌ Table body not initialized');
+					return;
+				}
+				
 				const risks = applyFilters(await apiGetRisks());
+				console.log(`📊 Rendering ${risks.length} risks`);
+				
 				tableBody.innerHTML = '';
 				risks.forEach(risk => {
 				const tr = document.createElement('tr');
@@ -145,11 +150,14 @@
 				tr.appendChild(actionTd);
 				tableBody.appendChild(tr);
 				});
+				console.log('✅ Risks table rendered successfully');
 			} catch (e) {
-				console.error(e);
-				tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#b00;padding:8px;">Failed to load risks.</td></tr>`;
+				console.error('❌ Error rendering risks table:', e);
+				if (tableBody) {
+					tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#b00;padding:8px;">Failed to load risks: ${e.message}</td></tr>`;
+				}
 			}
-			}
+		}
 
 
 		function openNewModal() {
@@ -1174,10 +1182,34 @@
 			addRiskBtn.addEventListener('click', openAddRiskModal);
 		}
 
+		// Initialize DOM elements
+		function initializeDOMElements() {
+			tableBody = document.getElementById('risksTableBody');
+			modalRoot = document.getElementById('modalRoot');
+			newBtn = document.querySelector('.new-btn');
+			filterBtn = document.querySelector('.filter-btn');
+			
+			if (!tableBody) {
+				console.error('❌ Risks table body not found');
+			}
+			if (!modalRoot) {
+				console.error('❌ Modal root not found');
+			}
+			if (!newBtn) {
+				console.error('❌ New button not found');
+			}
+			if (!filterBtn) {
+				console.error('❌ Filter button not found');
+			}
+		}
+
 		// Initialize heatmap on page load
 		document.addEventListener('DOMContentLoaded', async () => {
 			try {
 				console.log('🚀 Initializing findings page...');
+				
+				// Initialize DOM elements first
+				initializeDOMElements();
 				
 				// Load risks from database first
 				console.log('📊 Loading heatmap risks...');
@@ -1189,7 +1221,7 @@
 				
 				// Load risks table
 				console.log('📋 Loading risks table...');
-				await loadRisks();
+				await render();
 				
 				// Initialize logout functionality
 				initializeLogout();

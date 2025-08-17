@@ -386,9 +386,11 @@
     document.addEventListener('keydown', function onKey(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', onKey); } });
   }
 
-  async function fetchNotifications(){
+  async function fetchNotifications(scope){
     try{
-      const res = await fetch('http://localhost:3000/api/notif');
+      const dept = 'Compliance & Risk Management';
+      const url = scope === 'dept' ? `http://localhost:3000/api/notif?dept=${encodeURIComponent(dept)}` : `http://localhost:3000/api/notif`;
+      const res = await fetch(url);
       if(!res.ok) return [];
       const list = await res.json();
       return Array.isArray(list) ? list : [];
@@ -417,18 +419,31 @@
     const listEl = document.getElementById('notifList');
     const badge = document.getElementById('notifBadge');
     const closeBtn = document.getElementById('notifCloseBtn');
+    const scopeInputs = document.querySelectorAll('input[name="notifScope"]');
     if(!bell || !pop || !listEl || !badge || !closeBtn) return;
 
+    let currentScope = 'dept';
     function hide(){ pop.style.display='none'; }
     function toggle(){ pop.style.display = (pop.style.display==='none' || !pop.style.display) ? 'block' : 'none'; }
+
+    async function loadList(){
+      const items = await fetchNotifications(currentScope);
+      listEl.innerHTML = items.length ? items.map(renderNotifItem).join('') : '<div style="padding:12px; color:#6b7280;">No notifications</div>';
+    }
 
     bell.addEventListener('click', async ()=>{
       toggle();
       if(pop.style.display==='block'){
-        const items = await fetchNotifications();
-        listEl.innerHTML = items.length ? items.map(renderNotifItem).join('') : '<div style="padding:12px; color:#6b7280;">No notifications</div>';
+        await loadList();
       }
     });
+
+    scopeInputs.forEach(inp => inp.addEventListener('change', async (e)=>{
+      currentScope = e.target.value === 'all' ? 'all' : 'dept';
+      await loadList();
+      // Update badge to reflect current scope
+      await refreshBadge();
+    }));
     closeBtn.addEventListener('click', hide);
     document.addEventListener('click', (e)=>{
       const wrap = bell.closest('.notif-wrapper');
@@ -437,7 +452,9 @@
 
     async function refreshBadge(){
       try{
-        const res = await fetch('http://localhost:3000/api/notif/count');
+        const dept = 'Compliance & Risk Management';
+        const url = currentScope === 'dept' ? `http://localhost:3000/api/notif/count?dept=${encodeURIComponent(dept)}` : `http://localhost:3000/api/notif/count`;
+        const res = await fetch(url);
         const data = await res.json();
         const count = Number(data.count)||0;
         if(count>0){ badge.style.display='inline-block'; badge.textContent = String(count); }

@@ -808,12 +808,17 @@ app.get('/api/notifications/count', async (req, res) => {
 // Lightweight endpoints that read directly from 'notif' table
 app.get('/api/notif', async (req, res) => {
   try {
-    const out = await auditsDb.query(`
+    const dept = (req.query.dept || '').trim();
+    const hasDept = dept.length > 0;
+    const sql = `
       SELECT id, title, message, dept, sender, is_read, created_at
       FROM notif
+      ${hasDept ? 'WHERE dept = $1' : ''}
       ORDER BY created_at DESC
       LIMIT 50
-    `);
+    `;
+    const params = hasDept ? [dept] : [];
+    const out = await auditsDb.query(sql, params);
     const items = out.rows.map(r => ({
       id: `notif-${r.id}`,
       type: 'notification',
@@ -838,7 +843,11 @@ app.get('/api/notif', async (req, res) => {
 
 app.get('/api/notif/count', async (req, res) => {
   try {
-    const out = await auditsDb.query(`SELECT COUNT(*) AS count FROM notif WHERE is_read = false`);
+    const dept = (req.query.dept || '').trim();
+    const hasDept = dept.length > 0;
+    const sql = `SELECT COUNT(*) AS count FROM notif ${hasDept ? 'WHERE dept = $1' : ''} AND is_read = false`;
+    const normalized = hasDept ? `WHERE dept = $1 AND is_read = false` : `WHERE is_read = false`;
+    const out = await auditsDb.query(`SELECT COUNT(*) AS count FROM notif ${normalized}`, hasDept ? [dept] : []);
     res.json({ count: parseInt(out.rows[0].count, 10) || 0 });
   } catch (e) {
     console.error('Failed to count notif table:', e);

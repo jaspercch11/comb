@@ -609,7 +609,7 @@
 .chart-scroll canvas {
   /* Ensure chart is properly displayed */
   display: block;
-  max-height: 100%;
+  max-height: none;
 }
 
 /* Ensure department names are readable */
@@ -640,7 +640,7 @@
   min-width: 0;
   width: auto;
 }
-/* Slightly increase height only for the chart panel */
-.content .left {
-  height: 440px;
+/* Increase chart canvas height without modifying containers */
+#complianceChart {
+  height: 360px !important;
 }

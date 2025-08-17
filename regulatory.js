@@ -69,8 +69,8 @@
         <td>${r.next_review ? new Date(r.next_review).toISOString().slice(0,10) : 'Not Scheduled'}</td>
         <td>
           <div class="action-buttons">
-            <button class="btn-view" onclick="viewRegulation(${r.id})">👁️ View</button>
-            <button class="btn-edit" onclick="editRegulation(${r.id})">✏️ Edit</button>
+            <button class="btn-view" onclick="viewRegulation(${r.id})">View</button>
+            <button class="btn-edit" onclick="editRegulation(${r.id})">Edit</button>
           </div>
         </td>
       `;

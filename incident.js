@@ -97,8 +97,8 @@
         <td><span class="status-badge ${statusClass}">${incident.status || 'Open'}</span></td>
         <td><span class="severity-badge ${severityClass}">${incident.severity_level || 'Medium'}</span></td>
         <td>
-          <button class="btn btn-view view-btn" onclick="viewIncident(${incident.incident_id})">👁️ View</button>
-          <button class="btn btn-edit" onclick="editIncidentStatus(${incident.incident_id})">✏️ Edit</button>
+          <button class="btn btn-view view-btn" onclick="viewIncident(${incident.incident_id})">View</button>
+          <button class="btn btn-edit" onclick="editIncidentStatus(${incident.incident_id})">Edit</button>
         </button>
         </td>
       `;

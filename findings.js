@@ -1112,8 +1112,8 @@
 						<td>${risk.progress || 0}%</td>
 						<td><span class="status-badge status-${risk.status || 'on track'}">${risk.status || 'on track'}</span></td>
 						<td>
-							<button class="btn btn-view" onclick="viewRisk(${risk.id})">👁️ View</button>
-							<button class="btn btn-edit" onclick="editRisk(${risk.id})">✏️ Edit</button>
+							<button class="btn btn-view" onclick="viewRisk(${risk.id})">View</button>
+							<button class="btn btn-edit" onclick="editRisk(${risk.id})">Edit</button>
 						</td>
 					`;
 					tableBody.appendChild(row);

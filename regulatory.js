@@ -69,8 +69,8 @@
         <td>${r.next_review ? new Date(r.next_review).toISOString().slice(0,10) : 'Not Scheduled'}</td>
         <td>
           <div class="action-buttons">
-            <button class="btn-view" onclick="viewRegulation(${r.id})">👁️ View</button>
-            <button class="btn-edit" onclick="editRegulation(${r.id})">✏️ Edit</button>
+            <button class="btn-view" onclick="viewRegulation(${r.id})">View</button>
+            <button class="btn-edit" onclick="editRegulation(${r.id})">Edit</button>
           </div>
         </td>
       `;
@@ -198,12 +198,17 @@
       window._regComplianceChart.destroy();
     }
 
-    const perCategoryWidth = 110; // px/bar label area
+    // Calculate proper width for chart to accommodate all labels
+    const perCategoryWidth = 140; // Increased width per bar to accommodate longer department names
+    const minBarWidth = 60; // Minimum width for each bar
+    const labelPadding = 20; // Extra padding for labels
+    
     const inner = document.querySelector('.chart-inner');
     if (inner) {
       const container = inner.parentElement;
       const containerWidth = container ? container.clientWidth : 0;
-      const dynamicWidth = Math.max(containerWidth, labels.length * perCategoryWidth);
+      // Ensure enough width for labels and bars
+      const dynamicWidth = Math.max(containerWidth, labels.length * perCategoryWidth + labelPadding);
       inner.style.width = dynamicWidth + 'px';
     }
 
@@ -237,6 +242,32 @@
             title: {
               display: true,
               text: 'Departments'
+            },
+            ticks: {
+              // Prevent label rotation - keep them horizontal
+              maxRotation: 0,
+              minRotation: 0,
+              // Auto-skip labels if they overlap
+              autoSkip: true,
+              // Ensure labels are readable
+              font: {
+                size: 11
+              },
+              // Add some padding between bars and labels
+              padding: 8,
+              // Ensure proper spacing
+              callback: function(value, index, values) {
+                // Return the label text
+                return labels[index];
+              }
+            },
+            // Ensure proper spacing for labels
+            grid: {
+              display: false
+            },
+            // Add some space for labels
+            afterFit: function(scale) {
+              scale.paddingBottom = 15;
             }
           }
         },
@@ -246,7 +277,26 @@
             display: true,
             text: currentDeptFilter ? `Risk Distribution - ${currentDeptFilter}` : 'Risk Distribution by Department'
           }
-        }
+        },
+        // Ensure proper spacing between bars
+        layout: {
+          padding: {
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: 40 // Increased bottom padding for labels
+          }
+        },
+        // Ensure bars are properly spaced
+        elements: {
+          bar: {
+            borderWidth: 1,
+            borderRadius: 4
+          }
+        },
+        // Responsive behavior
+        responsive: true,
+        maintainAspectRatio: false
       }
     });
   }
@@ -583,6 +633,7 @@
     inner.style.width = dynamicWidth + 'px';
   });
 })();
+
 
 
 

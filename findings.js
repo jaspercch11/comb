@@ -1002,17 +1002,21 @@
 		async function loadRisks() {
 			const res = await fetch('http://localhost:3000/api/risks');
 			const risks = await res.json();
-			const tableBody = document.getElementById('risks-table-body');
+			const tableBody = document.getElementById('risksTableBody');
 			if (!tableBody) return;
 			tableBody.innerHTML = '';
 			risks.forEach(risk => {
 				const row = document.createElement('tr');
 				row.innerHTML = `
-					<td>${risk.id}</td>
 					<td>${risk.risk_title}</td>
-					<td>${risk.dept}</td>
-					<td>${risk.review_date}</td>
-					<td>${risk.status}</td>
+					<td>${risk.dept || 'Unassigned'}</td>
+					<td>${risk.review_date ? new Date(risk.review_date).toLocaleDateString() : 'Not Scheduled'}</td>
+					<td>${risk.progress || 0}%</td>
+					<td><span class="status-badge status-${risk.status || 'on track'}">${risk.status || 'on track'}</span></td>
+					<td>
+						<button class="btn btn-view" onclick="viewRisk(${risk.id})">👁️ View</button>
+						<button class="btn btn-edit" onclick="editRisk(${risk.id})">✏️ Edit</button>
+					</td>
 				`;
 				tableBody.appendChild(row);
 			});
@@ -1071,6 +1075,9 @@
 			await fetchHeatmapRisks();
 			renderHeatmap();
 			
+			// Load risks table
+			await loadRisks();
+			
 			// Initialize logout functionality
 			initializeLogout();
 		});
@@ -1101,6 +1108,15 @@
 			// You can add any cleanup logic here (clear session, etc.)
 			window.location.href = 'index.html';
 		}
+
+		// Placeholder functions for risk actions
+		window.viewRisk = function(riskId) {
+			alert(`View risk ${riskId} - Functionality coming soon!`);
+		};
+
+		window.editRisk = function(riskId) {
+			alert(`Edit risk ${riskId} - Functionality coming soon!`);
+		};
 
 
 	})();

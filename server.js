@@ -104,7 +104,7 @@ async function computeRiskProgress(riskId) {
 
 function mapProgressToIncidentStatus(progress) {
   // tweak if you want more states; this keeps it simple
-  return progress >= 100 ? 'resolved' : 'in progress';
+  return progress >= 100 ? 'Resolved' : 'In Progress';
 }
 
 function logAudit(message, dept = null, status = 'info') {
@@ -462,8 +462,8 @@ app.get('/api/dashboard/compliance-status', async (req, res) => {
   try {
     const rows = (await auditsDb.query('SELECT status FROM incidents')).rows;
     const counts = rows.reduce((acc, r) => { const s = String(r.status || '').toLowerCase(); acc[s] = (acc[s]||0)+1; return acc; }, {});
-    const compliant = (counts['investigating'] || 0) + (counts['in progress'] || 0);
-    const non_compliant = (counts['resolved'] || 0);
+    const compliant = (counts['investigating'] || 0) + (counts['In Progress'] || 0);
+    const non_compliant = (counts['Resolved'] || 0);
     res.json({ compliant, non_compliant });
   } catch (e) {
     console.error('Dashboard status failed', e);
@@ -1044,7 +1044,7 @@ app.put('/api/risks/:id/tasks', async (req, res) => {
     try {
       const derived = mapProgressToIncidentStatus(progress);
       await auditsDb.query('UPDATE incidents SET status = $2 WHERE risk_id = $1', [riskId, derived]);
-      logAudit(`Risk progress updated (ID ${riskId}) -> ${progress}%`, null, derived === 'resolved' ? 'completed' : 'in progress');
+      logAudit(`Risk progress updated (ID ${riskId}) -> ${progress}%`, null, derived === 'Resolved' ? 'completed' : 'in progress');
     } catch (e) {
       console.error('Failed to sync incidents status', e);
     }

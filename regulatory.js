@@ -62,7 +62,7 @@
       
       tr.innerHTML = `
         <td>${r.name}</td>
-        <td>${r.department || 'Not Assigned'}</td>
+        <td>${Array.isArray(r.departments) ? r.departments.join(', ') : (r.department || 'Not Assigned')}</td>
         <td><span class="${statusClass}">${r.status}</span></td>
         <td><span class="${riskLevelClass}">${riskLevel}</span></td>
         <td>${r.last_review ? new Date(r.last_review).toISOString().slice(0,10) : 'Not Reviewed'}</td>
@@ -522,7 +522,7 @@
     document.addEventListener('keydown', function onKey(e) { if(e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } });
   };
 
-  function openAddRegulationModal() {
+  async function openAddRegulationModal() {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     const modal = document.createElement('div');
@@ -536,8 +536,9 @@
             <input type="text" id="regName" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
           </div>
           <div style="margin-bottom: 15px;">
-            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Department:</label>
-            <input type="text" id="regDepartment" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Department(s):</label>
+            <select id="regDepartments" multiple required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; height: 160px;"></select>
+            <small style="display:block; color:#666; margin-top:6px;">Tip: Hold Ctrl/Cmd to select multiple departments</small>
           </div>
           <div style="margin-bottom: 15px;">
             <label style="display: block; font-weight: 600; margin-bottom: 5px;">Status:</label>
@@ -576,7 +577,26 @@
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
     overlay.style.display = 'flex';
-    
+
+    // Populate departments from audit.html's New form options
+    try {
+      const resp = await fetch('audit.html');
+      const html = await resp.text();
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      const deptSelect = tmp.querySelector('#department');
+      const opts = deptSelect ? Array.from(deptSelect.querySelectorAll('option')) : [];
+      const choices = opts
+        .map(o => o.textContent.trim())
+        .filter(v => v && v.toLowerCase() !== 'select department');
+      const multi = modal.querySelector('#regDepartments');
+      const fallback = (Array.isArray(deptChoices) ? deptChoices : []).filter(v => v);
+      const source = choices.length ? choices : fallback;
+      if (multi && source.length) {
+        multi.innerHTML = source.map(v => `<option value="${v}">${v}</option>`).join('');
+      }
+    } catch (_) { /* ignore */ }
+
     const close = () => { try { document.body.removeChild(overlay); } catch(e){} };
     modal.querySelector('.modal-close').onclick = close;
     overlay.addEventListener('click', (e) => { if(e.target === overlay) close(); });
@@ -597,20 +617,21 @@
 
   async function submitAddRegulation() {
     const name = document.getElementById('regName').value;
-    const department = document.getElementById('regDepartment').value;
+    const departmentsSelect = document.getElementById('regDepartments');
+    const departments = Array.from(departmentsSelect ? departmentsSelect.selectedOptions : []).map(o => o.value);
     const status = document.getElementById('regStatus').value;
     const riskLevel = document.getElementById('regRiskLevel').value;
     const lastReview = document.getElementById('regLastReview').value;
     const nextReview = document.getElementById('regNextReview').value;
     
-    if (!name || !department || !nextReview) {
+    if (!name || !departments.length || !nextReview) {
       alert('Please fill in all required fields');
       return;
     }
     
     try {
       // This would typically send data to your backend API
-      // For now, we'll just show a success message and close the modal
+      // For demo, just show success and close modal
       alert('Regulation added successfully! (This is a demo - data would be saved to database in production)');
       closeAddRegulationModal();
       

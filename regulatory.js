@@ -222,7 +222,8 @@
             data: counts,
             backgroundColor: '#ef5350',
             borderColor: '#d32f2f',
-            borderWidth: 1
+            borderWidth: 1,
+            maxBarThickness: 60
           }
         ]
       },
@@ -232,7 +233,7 @@
         scales: { 
           y: { 
             beginAtZero: true, 
-            ticks: { precision: 0 },
+            ticks: { precision: 0, font: { size: 13 } },
             title: {
               display: true,
               text: 'Number of Risks'
@@ -251,7 +252,7 @@
               autoSkip: true,
               // Ensure labels are readable
               font: {
-                size: 11
+                size: 13
               },
               // Add some padding between bars and labels
               padding: 8,
@@ -272,10 +273,11 @@
           }
         },
         plugins: { 
-          legend: { position: 'top' },
+          legend: { position: 'top', labels: { font: { size: 12 } } },
           title: {
             display: true,
-            text: currentDeptFilter ? `Risk Distribution - ${currentDeptFilter}` : 'Risk Distribution by Department'
+            text: currentDeptFilter ? `Risk Distribution - ${currentDeptFilter}` : 'Risk Distribution by Department',
+            font: { size: 18 }
           }
         },
         // Ensure proper spacing between bars
@@ -284,7 +286,7 @@
             left: 20,
             right: 20,
             top: 20,
-            bottom: 40 // Increased bottom padding for labels
+            bottom: 56 // Increased bottom padding for labels
           }
         },
         // Ensure bars are properly spaced

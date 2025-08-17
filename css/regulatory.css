@@ -609,7 +609,7 @@
 .chart-scroll canvas {
   /* Ensure chart is properly displayed */
   display: block;
-  max-height: calc(100% - 50px); /* Leave space for labels */
+  max-height: 100%;
 }
 
 /* Ensure department names are readable */

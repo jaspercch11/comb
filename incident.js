@@ -74,10 +74,14 @@
     cardInProgress.onclick = () => showIncidentsByStatus(['In Progress', 'Investigating'], incidents);
     cardResolved.onclick = () => showIncidentsByStatus('Resolved', incidents);
 
-    // Add clickable styling
-    [cardOpen, cardCritical, cardInProgress, cardResolved].forEach(card => {
+    // Add clickable styling to the whole cards
+    const cardElements = document.querySelectorAll('.card');
+    cardElements.forEach(card => {
       card.style.cursor = 'pointer';
       card.style.transition = 'transform 0.2s ease, box-shadow 0.2s ease';
+      
+      // Store the original box-shadow
+      const originalBoxShadow = card.style.boxShadow || '0 2px 8px rgba(0,0,0,0.08)';
       
       card.addEventListener('mouseenter', () => {
         card.style.transform = 'translateY(-2px)';
@@ -86,7 +90,7 @@
       
       card.addEventListener('mouseleave', () => {
         card.style.transform = 'translateY(0)';
-        card.style.boxShadow = '';
+        card.style.boxShadow = originalBoxShadow;
       });
     });
   }

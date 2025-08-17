@@ -687,30 +687,97 @@
 
 		// Function to render the heatmap
 		function renderHeatmap(filter = 'all') {
-			// Clear all risk containers
-			document.querySelectorAll('.risk-container').forEach(container => {
-				container.innerHTML = '';
-			});
-
-			// Filter risks if needed
-			const filteredRisks = filter === 'all' 
-				? heatmapRisks 
-				: heatmapRisks.filter(risk => risk.category === filter);
-
-			// Add risks to their positions
-			filteredRisks.forEach(risk => {
-				const container = document.querySelector(`.heatmap-cell[data-impact="${risk.impact}"][data-likelihood="${risk.likelihood}"] .risk-container`);
-				if (container) {
-					const riskEl = document.createElement('div');
-					riskEl.className = 'risk-item';
-					riskEl.textContent = risk.name;
-					riskEl.dataset.riskId = risk.id;
-					riskEl.title = `${risk.name} - ${risk.dept} (Impact: ${risk.impact}, Likelihood: ${risk.likelihood})`;
-					riskEl.addEventListener('click', () => showRiskDetails(risk.id));
-					
-					container.appendChild(riskEl);
+			try {
+				const heatmapGrid = document.getElementById('heatmapGrid');
+				if (!heatmapGrid) {
+					console.error('❌ Heatmap grid element not found');
+					return;
 				}
-			});
+
+				console.log(`🎨 Rendering heatmap with filter: ${filter}`);
+				console.log(`📊 Total heatmap risks: ${heatmapRisks.length}`);
+
+				// Clear the grid
+				heatmapGrid.innerHTML = '';
+
+				// Filter risks if needed
+				const filteredRisks = filter === 'all' 
+					? heatmapRisks 
+					: heatmapRisks.filter(risk => risk.category === filter);
+
+				console.log(`🔍 Filtered risks: ${filteredRisks.length}`);
+
+				// Generate the heatmap grid dynamically
+				for (let impact = 5; impact >= 1; impact--) {
+					// Create impact label row
+					const impactLabel = document.createElement('div');
+					impactLabel.className = 'impact-label';
+					impactLabel.textContent = getImpactLabel(impact);
+					heatmapGrid.appendChild(impactLabel);
+
+					// Create cells for this impact level
+					for (let likelihood = 1; likelihood <= 5; likelihood++) {
+						const cell = document.createElement('div');
+						cell.className = `heatmap-cell ${getRiskClass(impact, likelihood)}`;
+						cell.setAttribute('data-impact', impact);
+						cell.setAttribute('data-likelihood', likelihood);
+
+						const riskContainer = document.createElement('div');
+						riskContainer.className = 'risk-container';
+
+						// Add risks that belong to this cell
+						const cellRisks = filteredRisks.filter(risk => 
+							risk.impact === impact && risk.likelihood === likelihood
+						);
+
+						if (cellRisks.length > 0) {
+							console.log(`📍 Cell (${impact},${likelihood}): ${cellRisks.length} risks`);
+						}
+
+						cellRisks.forEach(risk => {
+							const riskEl = document.createElement('div');
+							riskEl.className = 'risk-item';
+							riskEl.textContent = risk.name;
+							riskEl.dataset.riskId = risk.id;
+							riskEl.title = `${risk.name} - ${risk.dept} (Impact: ${risk.impact}, Likelihood: ${risk.likelihood})`;
+							riskEl.addEventListener('click', () => showRiskDetails(risk.id));
+							
+							riskContainer.appendChild(riskEl);
+						});
+
+						cell.appendChild(riskContainer);
+						heatmapGrid.appendChild(cell);
+					}
+				}
+
+				console.log('✅ Heatmap rendered successfully');
+			} catch (error) {
+				console.error('❌ Error rendering heatmap:', error);
+			}
+		}
+
+		// Helper function to get impact label
+		function getImpactLabel(impact) {
+			const labels = {
+				5: 'Very High (5)',
+				4: 'High (4)',
+				3: 'Medium (3)',
+				2: 'Low (2)',
+				1: 'Very Low (1)'
+			};
+			return labels[impact] || '';
+		}
+
+		// Helper function to get risk class based on impact and likelihood
+		function getRiskClass(impact, likelihood) {
+			const score = impact * likelihood;
+			if (score >= 20) return 'critical-risk';
+			if (score >= 15) return 'very-high-risk';
+			if (score >= 12) return 'high-risk';
+			if (score >= 9) return 'moderate-risk';
+			if (score >= 6) return 'medium-risk';
+			if (score >= 3) return 'low-risk';
+			return 'minimal-risk';
 		}
 
 		// Function to show risk details and allow editing
@@ -1000,26 +1067,64 @@
 
 		// Function to fetch and display all risks in the table
 		async function loadRisks() {
-			const res = await fetch('http://localhost:3000/api/risks');
-			const risks = await res.json();
-			const tableBody = document.getElementById('risksTableBody');
-			if (!tableBody) return;
-			tableBody.innerHTML = '';
-			risks.forEach(risk => {
-				const row = document.createElement('tr');
-				row.innerHTML = `
-					<td>${risk.risk_title}</td>
-					<td>${risk.dept || 'Unassigned'}</td>
-					<td>${risk.review_date ? new Date(risk.review_date).toLocaleDateString() : 'Not Scheduled'}</td>
-					<td>${risk.progress || 0}%</td>
-					<td><span class="status-badge status-${risk.status || 'on track'}">${risk.status || 'on track'}</span></td>
-					<td>
-						<button class="btn btn-view" onclick="viewRisk(${risk.id})">👁️ View</button>
-						<button class="btn btn-edit" onclick="editRisk(${risk.id})">✏️ Edit</button>
-					</td>
-				`;
-				tableBody.appendChild(row);
-			});
+			try {
+				console.log('📋 Loading risks table...');
+				const res = await fetch('http://localhost:3000/api/risks');
+				if (!res.ok) {
+					throw new Error(`Failed to fetch risks: ${res.status}`);
+				}
+				const risks = await res.json();
+				console.log(`✅ Fetched ${risks.length} risks`);
+				
+				const tableBody = document.getElementById('risksTableBody');
+				if (!tableBody) {
+					console.error('❌ Risks table body not found');
+					return;
+				}
+				
+				tableBody.innerHTML = '';
+				
+				if (risks.length === 0) {
+					tableBody.innerHTML = `
+						<tr>
+							<td colspan="6" style="text-align: center; padding: 20px; color: #666;">
+								No risks found
+							</td>
+						</tr>
+					`;
+					return;
+				}
+				
+				risks.forEach(risk => {
+					const row = document.createElement('tr');
+					row.innerHTML = `
+						<td>${risk.risk_title}</td>
+						<td>${risk.dept || 'Unassigned'}</td>
+						<td>${risk.review_date ? new Date(risk.review_date).toLocaleDateString() : 'Not Scheduled'}</td>
+						<td>${risk.progress || 0}%</td>
+						<td><span class="status-badge status-${risk.status || 'on track'}">${risk.status || 'on track'}</span></td>
+						<td>
+							<button class="btn btn-view" onclick="viewRisk(${risk.id})">👁️ View</button>
+							<button class="btn btn-edit" onclick="editRisk(${risk.id})">✏️ Edit</button>
+						</td>
+					`;
+					tableBody.appendChild(row);
+				});
+				
+				console.log('✅ Risks table loaded successfully');
+			} catch (error) {
+				console.error('❌ Error loading risks:', error);
+				const tableBody = document.getElementById('risksTableBody');
+				if (tableBody) {
+					tableBody.innerHTML = `
+						<tr>
+							<td colspan="6" style="text-align: center; padding: 20px; color: #ff0000;">
+								Error loading risks: ${error.message}
+							</td>
+						</tr>
+					`;
+				}
+			}
 		}
 
 		// Handle form submission (only if form exists on page)
@@ -1071,15 +1176,28 @@
 
 		// Initialize heatmap on page load
 		document.addEventListener('DOMContentLoaded', async () => {
-			// Load risks from database first
-			await fetchHeatmapRisks();
-			renderHeatmap();
-			
-			// Load risks table
-			await loadRisks();
-			
-			// Initialize logout functionality
-			initializeLogout();
+			try {
+				console.log('🚀 Initializing findings page...');
+				
+				// Load risks from database first
+				console.log('📊 Loading heatmap risks...');
+				await fetchHeatmapRisks();
+				console.log(`✅ Loaded ${heatmapRisks.length} heatmap risks`);
+				
+				console.log('🎨 Rendering heatmap...');
+				renderHeatmap();
+				
+				// Load risks table
+				console.log('📋 Loading risks table...');
+				await loadRisks();
+				
+				// Initialize logout functionality
+				initializeLogout();
+				
+				console.log('🎉 Findings page initialized successfully!');
+			} catch (error) {
+				console.error('❌ Error initializing findings page:', error);
+			}
 		});
 
 		// Logout functionality

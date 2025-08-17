@@ -537,8 +537,8 @@
           </div>
           <div style="margin-bottom: 15px;">
             <label style="display: block; font-weight: 600; margin-bottom: 5px;">Department(s):</label>
-            <select id="regDepartments" multiple required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; height: 160px;"></select>
-            <small style="display:block; color:#666; margin-top:6px;">Tip: Hold Ctrl/Cmd to select multiple departments</small>
+            <div id="deptMultiContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            <button type="button" id="addDeptRowBtn" class="btn" style="width: auto;">+ Add Department</button>
           </div>
           <div style="margin-bottom: 15px;">
             <label style="display: block; font-weight: 600; margin-bottom: 5px;">Status:</label>
@@ -589,11 +589,36 @@
       const choices = opts
         .map(o => o.textContent.trim())
         .filter(v => v && v.toLowerCase() !== 'select department');
-      const multi = modal.querySelector('#regDepartments');
       const fallback = (Array.isArray(deptChoices) ? deptChoices : []).filter(v => v);
-      const source = choices.length ? choices : fallback;
-      if (multi && source.length) {
-        multi.innerHTML = source.map(v => `<option value="${v}">${v}</option>`).join('');
+      const source = (choices.length ? choices : fallback).filter((v, i, a) => a.indexOf(v) === i);
+
+      const container = modal.querySelector('#deptMultiContainer');
+      const addBtn = modal.querySelector('#addDeptRowBtn');
+      function createRow() {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.gap = '8px';
+        row.innerHTML = `
+          <select class="regDeptSelect" style="flex:1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            ${source.map(v => `<option value="${v}">${v}</option>`).join('')}
+          </select>
+          <button type="button" class="btn" data-role="remove" style="background:#eee;">✕</button>
+        `;
+        const removeBtn = row.querySelector('[data-role="remove"]');
+        removeBtn.addEventListener('click', () => {
+          container.removeChild(row);
+          ensureAtLeastOneRow();
+        });
+        container.appendChild(row);
+      }
+      function ensureAtLeastOneRow(){
+        if (!container.querySelector('.regDeptSelect')) {
+          createRow();
+        }
+      }
+      if (container && addBtn && source.length) {
+        addBtn.addEventListener('click', createRow);
+        createRow();
       }
     } catch (_) { /* ignore */ }
 
@@ -617,8 +642,7 @@
 
   async function submitAddRegulation() {
     const name = document.getElementById('regName').value;
-    const departmentsSelect = document.getElementById('regDepartments');
-    const departments = Array.from(departmentsSelect ? departmentsSelect.selectedOptions : []).map(o => o.value);
+    const departments = Array.from(document.querySelectorAll('.regDeptSelect')).map(s => s.value).filter(Boolean);
     const status = document.getElementById('regStatus').value;
     const riskLevel = document.getElementById('regRiskLevel').value;
     const lastReview = document.getElementById('regLastReview').value;

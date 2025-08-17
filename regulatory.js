@@ -386,7 +386,67 @@
     document.addEventListener('keydown', function onKey(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', onKey); } });
   }
 
+  async function fetchNotifications(){
+    try{
+      const res = await fetch('http://localhost:3000/api/notifications');
+      if(!res.ok) return [];
+      const list = await res.json();
+      return Array.isArray(list) ? list : [];
+    }catch(_){ return []; }
+  }
 
+  function renderNotifItem(n){
+    const dateStr = n.date ? new Date(n.date).toLocaleString() : '';
+    const badge = (n.priority && n.priority !== 'normal') ? `<span style="font-size:11px; padding:2px 6px; border-radius:9999px; background:${n.priority==='high'?'#fde68a':n.priority==='urgent'?'#fecaca':'#e5e7eb'}; margin-left:6px;">${n.priority}</span>` : '';
+    return `
+      <div style="padding:10px 12px; border-bottom:1px solid #f1f5f9;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+          <div style="flex:1;">
+            <div style="font-weight:600; color:#111;">${n.title || 'Notification'}${badge}</div>
+            <div style="color:#374151; font-size:13px;">${n.message || ''}</div>
+            <div style="color:#6b7280; font-size:12px; margin-top:4px;">${dateStr}</div>
+          </div>
+          ${n.action_url ? `<a href="${n.action_url}" target="_blank" style="font-size:12px; white-space:nowrap;">Open</a>` : ''}
+        </div>
+      </div>`;
+  }
+
+  async function initNotificationsUI(){
+    const bell = document.getElementById('notifBell');
+    const pop = document.getElementById('notifPopover');
+    const listEl = document.getElementById('notifList');
+    const badge = document.getElementById('notifBadge');
+    const closeBtn = document.getElementById('notifCloseBtn');
+    if(!bell || !pop || !listEl || !badge || !closeBtn) return;
+
+    function hide(){ pop.style.display='none'; }
+    function toggle(){ pop.style.display = (pop.style.display==='none' || !pop.style.display) ? 'block' : 'none'; }
+
+    bell.addEventListener('click', async ()=>{
+      toggle();
+      if(pop.style.display==='block'){
+        const items = await fetchNotifications();
+        listEl.innerHTML = items.length ? items.map(renderNotifItem).join('') : '<div style="padding:12px; color:#6b7280;">No notifications</div>';
+      }
+    });
+    closeBtn.addEventListener('click', hide);
+    document.addEventListener('click', (e)=>{
+      const wrap = bell.closest('.notif-wrapper');
+      if (wrap && !wrap.contains(e.target)) hide();
+    });
+
+    async function refreshBadge(){
+      try{
+        const res = await fetch('http://localhost:3000/api/notifications/count');
+        const data = await res.json();
+        const count = Number(data.count)||0;
+        if(count>0){ badge.style.display='inline-block'; badge.textContent = String(count); }
+        else { badge.style.display='none'; }
+      }catch(_){ badge.style.display='none'; }
+    }
+    await refreshBadge();
+    setInterval(refreshBadge, 15000);
+  }
 
   async function load(){
     const regs = await fetchRegs();
@@ -404,6 +464,7 @@
 
   load();
   renderChart();
+  initNotificationsUI();
   setInterval(async()=>{
     renderTopCards(await fetchRegs());
     renderPending(await fetchPending());

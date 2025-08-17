@@ -571,7 +571,7 @@
 }
  .content .left,
  .content .right {
-   height: 480px; /* Increased height to accommodate labels */
+   height: 400px; /* Increased height to accommodate labels */
    display: flex;
    flex-direction: column;
    min-width: 0;

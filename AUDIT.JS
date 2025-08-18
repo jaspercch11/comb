@@ -296,6 +296,8 @@ document.getElementById('auditForm').addEventListener('submit', async function(e
   };
 
   try {
+    // persist selected department for cross-page defaulting
+    try { if (this.department && this.department.value) localStorage.setItem('lastSelectedDepartment', this.department.value); } catch(e){}
     const response = await fetch('http://localhost:3000/audits', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -506,6 +508,27 @@ function initializeLogout() {
     });
   }
 }
+
+// Prefill department on floating form open and persist changes
+(function wireDepartmentPersistence(){
+  const openBtn = document.querySelector('.btn.btn-new');
+  if (openBtn) {
+    openBtn.addEventListener('click', () => {
+      setTimeout(() => {
+        try {
+          const select = document.getElementById('department');
+          if (select) {
+            const saved = localStorage.getItem('lastSelectedDepartment') || '';
+            if (saved) select.value = saved;
+            select.addEventListener('change', () => {
+              try { localStorage.setItem('lastSelectedDepartment', select.value || ''); } catch(e){}
+            }, { once: false });
+          }
+        } catch(e){}
+      }, 0);
+    });
+  }
+})();
 
 // Logout function
 function logout() {

@@ -522,14 +522,41 @@ app.get('/api/regulations', async (req, res) => {
 
 app.post('/api/regulations', async (req, res) => {
   try {
-    const { title, department, status, risk_level, last_review, next_review } = req.body;
-    if (!title) return res.status(400).json({ error: 'title is required' });
-    const out = await auditsDb.query(
-      `INSERT INTO regulations (title, department, status, risk_level, last_review, next_review)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING regulation_id, title, department, status, risk_level, last_review, next_review`,
-      [title, department || null, status || null, risk_level || null, last_review || null, next_review || null]
-    );
+    const payload = req.body || {};
+    // Discover existing columns for regulations table
+    const colsRes = await auditsDb.query(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'regulations'
+    `);
+    const existing = new Set(colsRes.rows.map(r => String(r.column_name)));
+
+    // Map desired fields to available columns
+    const mapFirst = (keys) => keys.find(k => existing.has(k));
+    const nameCol = mapFirst(['title','name','regulation_name']);
+    const deptCol = mapFirst(['department','dept_responsible','dept']);
+    const statusCol = mapFirst(['status']);
+    const riskCol = mapFirst(['risk_level']);
+    const lastCol = mapFirst(['last_review','last_accessed_date']);
+    const nextCol = mapFirst(['next_review','next_review_date']);
+
+    if (!nameCol) {
+      return res.status(400).json({ error: 'No suitable name/title column exists in regulations table' });
+    }
+
+    const columns = [nameCol];
+    const values = [payload.title || payload.name || payload.regulation_name];
+    const params = ['$1'];
+    let idx = 2;
+    const addIf = (col, val) => { if (col !== undefined && col && existing.has(col)) { columns.push(col); values.push(val); params.push(`$${idx++}`); } };
+    addIf(deptCol, payload.department || payload.dept_responsible || payload.dept || null);
+    addIf(statusCol, payload.status || null);
+    addIf(riskCol, payload.risk_level || null);
+    addIf(lastCol, payload.last_review || payload.last_accessed_date || null);
+    addIf(nextCol, payload.next_review || payload.next_review_date || null);
+
+    const sql = `INSERT INTO regulations (${columns.join(', ')}) VALUES (${params.join(', ')}) RETURNING *`;
+    const out = await auditsDb.query(sql, values);
     res.status(201).json(out.rows[0]);
   } catch (e) {
     console.error('Error creating regulation', e);
@@ -540,19 +567,34 @@ app.post('/api/regulations', async (req, res) => {
 app.put('/api/regulations/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const { title, department, status, risk_level, last_review, next_review } = req.body;
+    const payload = req.body || {};
+    const colsRes = await auditsDb.query(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'regulations'
+    `);
+    const existing = new Set(colsRes.rows.map(r => String(r.column_name)));
+    const mapFirst = (keys) => keys.find(k => existing.has(k));
+    const nameCol = mapFirst(['title','name','regulation_name']);
+    const deptCol = mapFirst(['department','dept_responsible','dept']);
+    const statusCol = mapFirst(['status']);
+    const riskCol = mapFirst(['risk_level']);
+    const lastCol = mapFirst(['last_review','last_accessed_date']);
+    const nextCol = mapFirst(['next_review','next_review_date']);
+
     const fields = [];
     const values = [];
     let idx = 1;
-    if (title !== undefined) { fields.push(`title = $${idx++}`); values.push(title); }
-    if (department !== undefined) { fields.push(`department = $${idx++}`); values.push(department); }
-    if (status !== undefined) { fields.push(`status = $${idx++}`); values.push(status); }
-    if (risk_level !== undefined) { fields.push(`risk_level = $${idx++}`); values.push(risk_level); }
-    if (last_review !== undefined) { fields.push(`last_review = $${idx++}`); values.push(last_review || null); }
-    if (next_review !== undefined) { fields.push(`next_review = $${idx++}`); values.push(next_review || null); }
+    const addIf = (col, val) => { if (col && val !== undefined) { fields.push(`${col} = $${idx++}`); values.push(val); } };
+    addIf(nameCol, payload.title ?? payload.name ?? payload.regulation_name);
+    addIf(deptCol, payload.department ?? payload.dept_responsible ?? payload.dept);
+    addIf(statusCol, payload.status);
+    addIf(riskCol, payload.risk_level);
+    addIf(lastCol, payload.last_review ?? payload.last_accessed_date ?? null);
+    addIf(nextCol, payload.next_review ?? payload.next_review_date ?? null);
     if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
     values.push(id);
-    const sql = `UPDATE regulations SET ${fields.join(', ')} WHERE regulation_id = $${idx} RETURNING regulation_id, title, department, status, risk_level, last_review, next_review`;
+    const sql = `UPDATE regulations SET ${fields.join(', ')} WHERE regulation_id = $${idx} RETURNING *`;
     const out = await auditsDb.query(sql, values);
     if (!out.rowCount) return res.status(404).json({ error: 'Not found' });
     res.json(out.rows[0]);

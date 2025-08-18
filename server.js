@@ -905,6 +905,19 @@ app.post('/api/notifications', async (req, res) => {
       }
     }
 
+    // Mirror to Finance and Accounting custom table
+    if (normalizeDept(dept) === normalizeDept('Finance and Accounting')) {
+      try {
+        await auditsDb.query(
+          `INSERT INTO fa_notifications (date, text, type, ref, read)
+           VALUES (NOW(), $1, 'audit', NULL, FALSE)`,
+          [message]
+        );
+      } catch (mirrorErr) {
+        console.warn('Mirror to fa_notifications failed:', mirrorErr?.message || mirrorErr);
+      }
+    }
+
     // Log the activity
     await logActivity(`Notification sent to ${dept || 'all departments'}: ${title}`, sender_dept);
     

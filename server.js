@@ -539,7 +539,7 @@ app.post('/api/regulations', async (req, res) => {
     const mapFirst = (keys) => keys.find(k => existing.has(k));
     const nameCol = mapFirst(['title','name','regulation_name']);
     const deptCol = mapFirst(['department','dept_responsible','dept']);
-    const statusCol = mapFirst(['status_regulations','regulations_status','status']);
+    const statusCol = mapFirst(['status.regulations','status_regulations','regulations_status','status']);
     const riskCol = mapFirst(['risk_level']);
     const lastCol = mapFirst(['last_review','last_accessed_date']);
     const nextCol = mapFirst(['next_review','next_review_date']);
@@ -554,7 +554,14 @@ app.post('/api/regulations', async (req, res) => {
     let idx = 2;
     const addIf = (col, val) => { if (col !== undefined && col && existing.has(col)) { columns.push(col); values.push(val); params.push(`$${idx++}`); } };
     addIf(deptCol, payload.department || payload.dept_responsible || payload.dept || null);
-    addIf(statusCol, payload.status || payload.status_regulations || payload.regulations_status || null);
+    // If statusCol contains a dot, quote it explicitly
+    if (statusCol && statusCol.includes('.')) {
+      columns.push(`"${statusCol}"`);
+      values.push(payload.status || payload.status_regulations || payload.regulations_status || payload['status.regulations'] || null);
+      params.push(`$${idx++}`);
+    } else {
+      addIf(statusCol, payload.status || payload.status_regulations || payload.regulations_status || payload['status.regulations'] || null);
+    }
     addIf(riskCol, payload.risk_level || null);
     addIf(lastCol, payload.last_review || payload.last_accessed_date || null);
     addIf(nextCol, payload.next_review || payload.next_review_date || null);
@@ -581,7 +588,7 @@ app.put('/api/regulations/:id', async (req, res) => {
     const mapFirst = (keys) => keys.find(k => existing.has(k));
     const nameCol = mapFirst(['title','name','regulation_name']);
     const deptCol = mapFirst(['department','dept_responsible','dept']);
-    const statusCol = mapFirst(['status_regulations','regulations_status','status']);
+    const statusCol = mapFirst(['status.regulations','status_regulations','regulations_status','status']);
     const riskCol = mapFirst(['risk_level']);
     const lastCol = mapFirst(['last_review','last_accessed_date']);
     const nextCol = mapFirst(['next_review','next_review_date']);
@@ -592,7 +599,12 @@ app.put('/api/regulations/:id', async (req, res) => {
     const addIf = (col, val) => { if (col && val !== undefined) { fields.push(`${col} = $${idx++}`); values.push(val); } };
     addIf(nameCol, payload.title ?? payload.name ?? payload.regulation_name);
     addIf(deptCol, payload.department ?? payload.dept_responsible ?? payload.dept);
-    addIf(statusCol, payload.status ?? payload.status_regulations ?? payload.regulations_status);
+    if (statusCol && statusCol.includes('.')) {
+      fields.push(`"${statusCol}" = $${idx++}`);
+      values.push(payload.status ?? payload.status_regulations ?? payload.regulations_status ?? payload['status.regulations']);
+    } else {
+      addIf(statusCol, payload.status ?? payload.status_regulations ?? payload.regulations_status ?? payload['status.regulations']);
+    }
     addIf(riskCol, payload.risk_level);
     addIf(lastCol, payload.last_review ?? payload.last_accessed_date ?? null);
     addIf(nextCol, payload.next_review ?? payload.next_review_date ?? null);

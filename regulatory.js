@@ -558,6 +558,18 @@
             <p><strong>Last Review:</strong> ${regulation.last_review ? new Date(regulation.last_review).toISOString().slice(0,10) : 'Not Reviewed'}</p>
             <p><strong>Next Review:</strong> ${regulation.next_review ? new Date(regulation.next_review).toISOString().slice(0,10) : 'Not Scheduled'}</p>
             <p><strong>Description:</strong> ${regulation.description || 'No description available'}</p>
+            ${regulation.overview || regulation.requirements ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
+              ${regulation.overview ? `
+              <h4 style="margin-top: 0; color: #007bff;">Overview:</h4>
+              <p>${regulation.overview}</p>
+              ` : ''}
+              ${regulation.requirements ? `
+              <h4 style="color: #007bff;">Key Requirements:</h4>
+              <div>${regulation.requirements}</div>
+              ` : ''}
+            </div>
+            ` : ''}
             ${regulation.regulation_id == 1 ? `
             <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
               <h4 style="margin-top: 0; color: #007bff;">Overview:</h4>
@@ -901,6 +913,14 @@
             <label style="display: block; font-weight: 600; margin-bottom: 5px;">Next Review Date:</label>
             <input type="date" id="regNextReview" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
           </div>
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Overview:</label>
+            <textarea id="regOverview" placeholder="Enter regulation overview..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 80px; resize: vertical;"></textarea>
+          </div>
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 600; margin-bottom: 5px;">Requirements:</label>
+            <textarea id="regRequirements" placeholder="Enter regulation requirements..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; min-height: 120px; resize: vertical;"></textarea>
+          </div>
         </form>
       </div>
       <div class="modal-actions">
@@ -1030,6 +1050,8 @@
     const riskLevel = document.getElementById('regRiskLevel').value;
     const lastReview = document.getElementById('regLastReview').value;
     const nextReview = document.getElementById('regNextReview').value;
+    const overview = document.getElementById('regOverview').value;
+    const requirements = document.getElementById('regRequirements').value;
     
     if (!name || !departments.length || !nextReview) {
       alert('Please fill in all required fields');
@@ -1054,7 +1076,9 @@
           last_review: lastReview || null,
           last_accessed_date: lastReview || null,
           next_review: nextReview || null,
-          next_review_date: nextReview || null
+          next_review_date: nextReview || null,
+          overview: overview || null,
+          requirements: requirements || null
         })
       });
       if (!resp.ok) throw new Error('Failed to save regulation');

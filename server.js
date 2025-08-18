@@ -98,6 +98,15 @@ const auditsDb = pool;
       next_review DATE
     )`);
     
+    // Add overview and requirements columns if they don't exist
+    try {
+      await pool.query(`ALTER TABLE regulations ADD COLUMN IF NOT EXISTS overview TEXT`);
+      await pool.query(`ALTER TABLE regulations ADD COLUMN IF NOT EXISTS requirements TEXT`);
+    } catch (e) {
+      // Columns might already exist, ignore error
+      console.log('Overview/requirements columns check:', e?.message || 'OK');
+    }
+    
     // Create notifications table
     await pool.query(`CREATE TABLE IF NOT EXISTS notifications (
       id SERIAL PRIMARY KEY,
@@ -543,6 +552,8 @@ app.post('/api/regulations', async (req, res) => {
     const riskCol = mapFirst(['risk_level']);
     const lastCol = mapFirst(['last_review','last_accessed_date']);
     const nextCol = mapFirst(['next_review','next_review_date']);
+    const overviewCol = mapFirst(['overview']);
+    const requirementsCol = mapFirst(['requirements']);
 
     if (!nameCol) {
       return res.status(400).json({ error: 'No suitable name/title column exists in regulations table' });
@@ -558,6 +569,8 @@ app.post('/api/regulations', async (req, res) => {
     addIf(riskCol, payload.risk_level || null);
     addIf(lastCol, payload.last_review || payload.last_accessed_date || null);
     addIf(nextCol, payload.next_review || payload.next_review_date || null);
+    addIf(overviewCol, payload.overview || null);
+    addIf(requirementsCol, payload.requirements || null);
 
     const sql = `INSERT INTO regulations (${columns.join(', ')}) VALUES (${params.join(', ')}) RETURNING *`;
     const out = await auditsDb.query(sql, values);
@@ -585,6 +598,8 @@ app.put('/api/regulations/:id', async (req, res) => {
     const riskCol = mapFirst(['risk_level']);
     const lastCol = mapFirst(['last_review','last_accessed_date']);
     const nextCol = mapFirst(['next_review','next_review_date']);
+    const overviewCol = mapFirst(['overview']);
+    const requirementsCol = mapFirst(['requirements']);
 
     const fields = [];
     const values = [];
@@ -596,6 +611,8 @@ app.put('/api/regulations/:id', async (req, res) => {
     addIf(riskCol, payload.risk_level);
     addIf(lastCol, payload.last_review ?? payload.last_accessed_date ?? null);
     addIf(nextCol, payload.next_review ?? payload.next_review_date ?? null);
+    addIf(overviewCol, payload.overview ?? null);
+    addIf(requirementsCol, payload.requirements ?? null);
     if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
     values.push(id);
     const sql = `UPDATE regulations SET ${fields.join(', ')} WHERE regulation_id = $${idx} RETURNING *`;

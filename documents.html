@@ -222,6 +222,8 @@
           approveBtn.onclick = async () => {
             await approveDocument(id);
             await sendApprovalNotification(doc);
+            // Close the modal after approval
+            document.getElementById('viewModal').style.display = 'none';
           };
           reviseBtn.onclick = () => sendRevisionNotification(doc);
         }

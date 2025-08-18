@@ -345,13 +345,17 @@ app.get("/audit-status-summary", async (req, res) => {
 app.post("/audits", async (req, res) => {
   const { audit_id, audit_name, dept_audited, auditor, audit_date, status } = req.body;
   try {
-    const insertQuery = `
-      INSERT INTO audits (audit_id, audit_name, dept_audited, auditor, audit_date, status)
-      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
-    `;
-    const result = await pool.query(insertQuery, [
-      audit_id, audit_name, dept_audited, auditor, audit_date, status,
-    ]);
+    // If audit_id not provided, let DB assign it (assumes audits.audit_id is serial/identity)
+    const hasId = audit_id !== undefined && audit_id !== null && String(audit_id).trim() !== '';
+    const insertQuery = hasId
+      ? `INSERT INTO audits (audit_id, audit_name, dept_audited, auditor, audit_date, status)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`
+      : `INSERT INTO audits (audit_name, dept_audited, auditor, audit_date, status)
+         VALUES ($1, $2, $3, $4, $5) RETURNING *`;
+    const params = hasId
+      ? [audit_id, audit_name, dept_audited, auditor, audit_date, status]
+      : [audit_name, dept_audited, auditor, audit_date, status];
+    const result = await pool.query(insertQuery, params);
     const actor = (req.body.actor || 'User').toString();
     try {
       const row = result.rows[0];
@@ -535,7 +539,7 @@ app.post('/api/regulations', async (req, res) => {
     const mapFirst = (keys) => keys.find(k => existing.has(k));
     const nameCol = mapFirst(['title','name','regulation_name']);
     const deptCol = mapFirst(['department','dept_responsible','dept']);
-    const statusCol = mapFirst(['status']);
+    const statusCol = mapFirst(['status_regulations','regulations_status','status']);
     const riskCol = mapFirst(['risk_level']);
     const lastCol = mapFirst(['last_review','last_accessed_date']);
     const nextCol = mapFirst(['next_review','next_review_date']);
@@ -550,7 +554,7 @@ app.post('/api/regulations', async (req, res) => {
     let idx = 2;
     const addIf = (col, val) => { if (col !== undefined && col && existing.has(col)) { columns.push(col); values.push(val); params.push(`$${idx++}`); } };
     addIf(deptCol, payload.department || payload.dept_responsible || payload.dept || null);
-    addIf(statusCol, payload.status || null);
+    addIf(statusCol, payload.status || payload.status_regulations || payload.regulations_status || null);
     addIf(riskCol, payload.risk_level || null);
     addIf(lastCol, payload.last_review || payload.last_accessed_date || null);
     addIf(nextCol, payload.next_review || payload.next_review_date || null);
@@ -577,7 +581,7 @@ app.put('/api/regulations/:id', async (req, res) => {
     const mapFirst = (keys) => keys.find(k => existing.has(k));
     const nameCol = mapFirst(['title','name','regulation_name']);
     const deptCol = mapFirst(['department','dept_responsible','dept']);
-    const statusCol = mapFirst(['status']);
+    const statusCol = mapFirst(['status_regulations','regulations_status','status']);
     const riskCol = mapFirst(['risk_level']);
     const lastCol = mapFirst(['last_review','last_accessed_date']);
     const nextCol = mapFirst(['next_review','next_review_date']);
@@ -588,7 +592,7 @@ app.put('/api/regulations/:id', async (req, res) => {
     const addIf = (col, val) => { if (col && val !== undefined) { fields.push(`${col} = $${idx++}`); values.push(val); } };
     addIf(nameCol, payload.title ?? payload.name ?? payload.regulation_name);
     addIf(deptCol, payload.department ?? payload.dept_responsible ?? payload.dept);
-    addIf(statusCol, payload.status);
+    addIf(statusCol, payload.status ?? payload.status_regulations ?? payload.regulations_status);
     addIf(riskCol, payload.risk_level);
     addIf(lastCol, payload.last_review ?? payload.last_accessed_date ?? null);
     addIf(nextCol, payload.next_review ?? payload.next_review_date ?? null);
@@ -875,26 +879,65 @@ app.post('/api/notifications', async (req, res) => {
     const notification = result.rows[0];
     
     // Additionally mirror to notifications table for specific department without changing existing behavior
-    if (String(dept || '').trim() === 'Inventory & Warehouse Mgmt.') {
+    const normalizeDept = (s)=> String(s||'').replace(/\s+/g,' ').trim();
+    if (normalizeDept(dept) === normalizeDept('Inventory & Warehouse Mgmt.')) {
       try {
-        await auditsDb.query(
-          `INSERT INTO notifications (title, message, type, dept, sender_dept, sender_user, priority, action_required, action_url, metadata)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-          [
-            title,
-            message,
-            type || 'info',
-            dept,
-            sender_dept || null,
-            sender_user || null,
-            priority || 'normal',
-            Boolean(action_required) === true,
-            action_url || null,
-            metadata ? JSON.stringify(metadata) : null
-          ]
-        );
+        // Inspect notifications table to adapt to actual schema/nullability
+        const colsRes = await auditsDb.query(`
+          SELECT column_name, is_nullable
+          FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'notifications'
+        `);
+        const cols = new Map(colsRes.rows.map(r => [String(r.column_name), String(r.is_nullable).toUpperCase()]));
+        const hasType = cols.has('type');
+        const typeNullable = hasType ? cols.get('type') === 'YES' : true;
+        const hasCreatedAt = cols.has('created_at');
+        const hasIsRead = cols.has('is_read');
+
+        const fields = ['title', 'message'];
+        const params = ['$1', '$2'];
+        const values = [title, message];
+        let idx = 3;
+        if (hasType) { fields.push('type'); params.push(`$${idx++}`); values.push(typeNullable ? null : 'info'); }
+        if (hasCreatedAt) { fields.push('created_at'); params.push('NOW()'); }
+        if (hasIsRead) { fields.push('is_read'); params.push('FALSE'); }
+
+        const sql = `INSERT INTO notifications (${fields.join(', ')}) VALUES (${params.join(', ')})`;
+        await auditsDb.query(sql, values);
       } catch (mirrorErr) {
         console.warn('Mirror to notifications table failed:', mirrorErr?.message || mirrorErr);
+      }
+    }
+
+    // Mirror to Finance and Accounting custom table
+    if (normalizeDept(dept) === normalizeDept('Finance and Accounting')) {
+      try {
+        const generateId = () => {
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+          let out = '';
+          for (let i = 0; i < 8; i++) out += chars[Math.floor(Math.random() * chars.length)];
+          return out;
+        };
+        let success = false;
+        let lastErr = null;
+        for (let attempt = 0; attempt < 5 && !success; attempt++) {
+          const rid = generateId();
+          try {
+            await auditsDb.query(
+              `INSERT INTO fa_notifications (id, date, text, type, ref, read)
+               VALUES ($1, NOW(), $2, 'audit', NULL, FALSE)`,
+              [rid, message]
+            );
+            success = true;
+          } catch (e) {
+            lastErr = e;
+            // 23505 => unique_violation, try again with different id
+            if (!(e && e.code === '23505')) throw e;
+          }
+        }
+        if (!success && lastErr) throw lastErr;
+      } catch (mirrorErr) {
+        console.warn('Mirror to fa_notifications failed:', mirrorErr?.message || mirrorErr);
       }
     }
 

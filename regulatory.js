@@ -20,8 +20,8 @@
       const name = r.name || r.regulation_name || r.title || '—';
       const riskLevel = r.risk_level || 'Medium';
       
-      // Use database status if available, otherwise calculate based on review dates
-      let status = r.status;
+      // Use database status if available (support multiple possible column names), otherwise calculate based on review dates
+      let status = r.status || r.status_regulations || r.regulations_status || r.status_regulation;
       if (!status){
         const daysUntil = nextReview ? Math.floor((new Date(nextReview).getTime() - nowMs) / (1000*60*60*24)) : null;
         status = daysUntil !== null && daysUntil < 0 ? 'non-compliant' : 'compliant';
@@ -97,21 +97,20 @@
     const btn = document.getElementById('deptFilterBtn');
     if(!btn) return;
     try{
-      const [audits, incidents, documents, regs, risks] = await Promise.all([
-        fetch('http://localhost:3000/audits').then(r=>r.ok?r.json():[]).catch(()=>[]),
-        fetch('http://localhost:3000/api/incidents').then(r=>r.ok?r.json():[]).catch(()=>[]),
-        fetch('http://localhost:3000/documents').then(r=>r.ok?r.json():[]).catch(()=>[]),
-        fetchRegs(),
-        fetch('http://localhost:3000/api/risks').then(r=>r.ok?r.json():[]).catch(()=>[])
-      ]);
-      const norm = (s)=> String(s||'').trim();
-      const set = new Set();
-      audits.forEach(a=>{ const v=norm(a.dept_audited); if(v) set.add(v); });
-      incidents.forEach(i=>{ const v=norm(i.department); if(v) set.add(v); });
-      documents.forEach(d=>{ const v=norm(d.owner_dept); if(v) set.add(v); });
-      regs.forEach(r=>{ const v=norm(r.department); if(v) set.add(v); });
-      risks.forEach(r=>{ const v=norm(r.dept); if(v) set.add(v); });
-      deptChoices = [''].concat(Array.from(set).sort());
+      const resp = await fetch('audit.html');
+      const html = await resp.text();
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      const select = tmp.querySelector('#department');
+      const options = select ? Array.from(select.querySelectorAll('option')) : [];
+      const choices = options
+        .map(o => (o.textContent || '').trim())
+        .filter(v => v && v.toLowerCase() !== 'select department');
+      // Deduplicate while preserving order
+      const seen = new Set();
+      const uniqueChoices = [];
+      for (const c of choices){ if(!seen.has(c)){ seen.add(c); uniqueChoices.push(c); } }
+      deptChoices = [''].concat(uniqueChoices);
       btn.addEventListener('click', openDeptFilterModal);
     }catch(_){ /* no-op */ }
   }
@@ -166,7 +165,7 @@
     const risks = await fetchArray(`${API}/api/risks`);
     
     // Group risks by department and count them
-    const deptRiskCounts = {};
+    let deptRiskCounts = {};
     risks.forEach(risk => {
       const dept = risk.dept || 'Unknown Department';
       if (!deptRiskCounts[dept]) {
@@ -178,8 +177,11 @@
     // Apply department filter if set
     if (currentDeptFilter) {
       const filteredDeptRiskCounts = {};
-      if (deptRiskCounts[currentDeptFilter]) {
+      if (Object.prototype.hasOwnProperty.call(deptRiskCounts, currentDeptFilter)) {
         filteredDeptRiskCounts[currentDeptFilter] = deptRiskCounts[currentDeptFilter];
+      } else {
+        // Show selected department with zero if no risks found
+        filteredDeptRiskCounts[currentDeptFilter] = 0;
       }
       deptRiskCounts = filteredDeptRiskCounts;
     }

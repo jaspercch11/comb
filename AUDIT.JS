@@ -287,7 +287,6 @@ document.getElementById('auditForm').addEventListener('submit', async function(e
 
   // ==== Collect Form Data ====
   const auditData = {
-    audit_id: this.auditId.value.trim(),
     audit_name: this.auditName.value.trim(),
     dept_audited: this.department.value,
     auditor: this.auditor.value.trim(),

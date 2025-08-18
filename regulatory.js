@@ -558,6 +558,20 @@
             <p><strong>Last Review:</strong> ${regulation.last_review ? new Date(regulation.last_review).toISOString().slice(0,10) : 'Not Reviewed'}</p>
             <p><strong>Next Review:</strong> ${regulation.next_review ? new Date(regulation.next_review).toISOString().slice(0,10) : 'Not Scheduled'}</p>
             <p><strong>Description:</strong> ${regulation.description || 'No description available'}</p>
+            ${regulation.regulation_id == 1 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
+              <h4 style="margin-top: 0; color: #007bff;">Overview:</h4>
+              <p>The Sarbanes-Oxley Act (SOX) is a U.S. federal law enacted in 2002 to protect investors from fraudulent financial reporting by corporations. It mandates strict reforms to improve financial disclosures and prevent accounting fraud.</p>
+              
+              <h4 style="color: #007bff;">Key Requirements:</h4>
+              <ul style="margin-bottom: 0;">
+                <li><strong>Section 302:</strong> Corporate Responsibility for Financial Reports - Executives must personally certify the accuracy of financial statements.</li>
+                <li><strong>Section 404:</strong> Management Assessment of Internal Controls - Companies must establish, maintain, and assess internal controls for financial reporting.</li>
+                <li><strong>Audit Trails:</strong> Organizations must retain all records and maintain audit trails for key financial processes.</li>
+                <li><strong>Whistleblower Protection:</strong> Protects employees who report fraudulent activities.</li>
+              </ul>
+            </div>
+            ` : ''}
           </div>
         <div class="modal-actions">
           <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">Close</button>

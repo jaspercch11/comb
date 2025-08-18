@@ -155,7 +155,7 @@
       <p><strong>Last Validated:</strong> <span id="viewLastValidated"></span></p>
       <div class="modal-buttons">
         <button id="approveBtn" class="upload-btn">Approve</button>
-        <button id="reviseBtn" class="cancel-btn">Revise</button>
+        <button id="reviseBtn" class="cancel-btn" disabled>Revise</button>
         <button type="button" class="cancel-btn" onclick="closeViewModal()">Close</button>
       </div>
     </div>
@@ -188,10 +188,6 @@
         document.getElementById('viewApprovedDate').textContent = formatDate(doc.document_approved);
         document.getElementById('viewLastValidated').textContent = formatDate(doc.last_review);
         document.getElementById('approveBtn').onclick = () => approveDocument(id);
-        const reviseBtn = document.getElementById('reviseBtn');
-        if (reviseBtn) {
-          reviseBtn.onclick = () => reviseDocument(id);
-        }
         document.getElementById('viewModal').style.display = 'flex';
       } catch (err) {
         console.error(err);
@@ -212,19 +208,7 @@
       }
     }
 
-    async function reviseDocument(id) {
-      try {
-        const res = await fetch(`/revise/${id}`, { method: 'PUT' });
-        const data = await res.json();
-        document.getElementById('viewStatus').textContent = data.approval_status;
-        document.getElementById('viewApprovedDate').textContent = formatDate(data.document_approved);
-        // keep last_review as is
-        await loadDocuments();
-        renderDocuments();
-      } catch (err) {
-        console.error(err);
-      }
-    }
+    
 
     async function closeViewModal() {
       if (currentViewedDocId) {

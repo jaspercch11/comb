@@ -580,8 +580,20 @@
       try{
         const res = await fetch(`${API}/api/regulations`);
         const regs = await res.json();
-        const reg = Array.isArray(regs) ? regs.find(r=> String(r.regulation_id)===String(id)) : null;
-        // Fallback if not found: create a minimal object so modal still opens
+        let reg = Array.isArray(regs) ? regs.find(r=> String(r.regulation_id)===String(id)) : null;
+        // If not found in API (e.g., newly added client-side), derive from DOM row
+        if(!reg){
+          const tr = regsBody.querySelector(`tr[data-reg-id="${String(id)}"]`);
+          if(tr){
+            const tds = tr.querySelectorAll('td');
+            reg = {
+              status: tds[2] ? tds[2].textContent.trim() : 'Active',
+              risk_level: tds[3] ? tds[3].textContent.trim() : 'Medium',
+              last_review: tds[4] && tds[4].textContent.includes('-') ? tds[4].textContent.trim() : null,
+              next_review: tds[5] && tds[5].textContent.includes('-') ? tds[5].textContent.trim() : null
+            };
+          }
+        }
         const currentStatus = (reg && (reg.status || 'Active')) || 'Active';
         const currentRisk = (reg && (reg.risk_level || 'Medium')) || 'Medium';
         const currentLast = reg && (reg.last_review || reg.last_accessed_date) ? new Date(reg.last_review || reg.last_accessed_date).toISOString().slice(0,10) : '';
@@ -684,6 +696,9 @@
           }catch(_){ /* ignore network errors and fallback to DOM only */ }
 
           await applyDomUpdate();
+          if (typeof recomputeTopCardsFromDom === 'function') {
+            try { recomputeTopCardsFromDom(); } catch(_){}
+          }
           close();
           if(!persisted){
             console.warn('Regulation update not persisted (no API). Updated UI only.');
@@ -894,18 +909,67 @@
     }
     
     try {
-      // This would typically send data to your backend API
-      // For demo, just show success and close modal
-      alert('Regulation added successfully! (This is a demo - data would be saved to database in production)');
+      // Create a new row in the table immediately (client-side add)
+      const newId = Date.now();
+      const tr = document.createElement('tr');
+      tr.dataset.regId = String(newId);
+      const statusClass = `status-${String(status).toLowerCase().replace(/[^a-z0-9]/g,'-')}`;
+      const riskClass = String(riskLevel).toLowerCase();
+      const lastDisp = lastReview ? new Date(lastReview).toISOString().slice(0,10) : 'Not Reviewed';
+      const nextDisp = nextReview ? new Date(nextReview).toISOString().slice(0,10) : 'Not Scheduled';
+      tr.innerHTML = `
+        <td>${name}</td>
+        <td>${departments.join(', ')}</td>
+        <td><span class="${statusClass}">${status}</span></td>
+        <td><span class="${riskClass}">${riskLevel}</span></td>
+        <td>${lastDisp}</td>
+        <td>${nextDisp}</td>
+        <td>
+          <div class="action-buttons">
+            <button class="btn-view" onclick="viewRegulation(${JSON.stringify(String(newId))})">View</button>
+            <button class="btn-edit" onclick="editRegulation(${JSON.stringify(String(newId))})">Edit</button>
+          </div>
+        </td>
+      `;
+      regsBody.appendChild(tr);
+
+      // Close modal
       closeAddRegulationModal();
-      
-      // Refresh the regulations list
-      const regs = await fetchRegs();
-      renderRegs(regs);
-      renderTopCards(regs);
+
+      // Update top cards from current DOM
+      recomputeTopCardsFromDom();
     } catch (error) {
       alert('Error adding regulation: ' + error.message);
     }
+  }
+
+  // Expose modal helpers globally for inline handlers in HTML fragments
+  window.closeAddRegulationModal = closeAddRegulationModal;
+  window.submitAddRegulation = submitAddRegulation;
+
+  function recomputeTopCardsFromDom(){
+    const rows = Array.from(regsBody.querySelectorAll('tr'));
+    const total = rows.length;
+    let compliant = 0;
+    let nonCompliant = 0;
+    let reviewSoon = 0;
+    const now = Date.now();
+    rows.forEach(row=>{
+      const tds = row.querySelectorAll('td');
+      const statusText = (tds[2] ? tds[2].textContent : '').trim().toLowerCase();
+      if(statusText === 'compliant') compliant++;
+      if(statusText === 'non-compliant' || statusText === 'noncompliant') nonCompliant++;
+      const nextText = (tds[5] ? tds[5].textContent : '').trim();
+      if(nextText && /\d{4}-\d{2}-\d{2}/.test(nextText)){
+        const days = Math.floor((new Date(nextText).getTime() - now) / (1000*60*60*24));
+        if(days <= 30) reviewSoon++;
+      }
+    });
+    const setText = (id, val)=>{ const el=document.getElementById(id); if(el) el.textContent = String(val); };
+    setText('totalRegs', total);
+    setText('compliant', compliant);
+    setText('nonCompliant', nonCompliant);
+    setText('reviewSoon', reviewSoon);
   }
 
   // Recompute chart inner width on resize

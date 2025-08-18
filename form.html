@@ -80,7 +80,7 @@
 <div class="form-container">
     <h2>Report a New Incident</h2>
 
-    <form action="/submit-incident" method="POST" enctype="multipart/form-data">
+    <form id="incidentForm" enctype="multipart/form-data">
         <div class="row">
             <div>
                 <label for="incident-type">Incident type</label>
@@ -146,5 +146,47 @@
     </form>
 </div>
 
+<script>
+document.getElementById('incidentForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitButton = this.querySelector('button[type="submit"]');
+    const originalText = submitButton.textContent;
+    
+    // Disable button and show loading state
+    submitButton.disabled = true;
+    submitButton.textContent = 'Submitting...';
+    
+    try {
+        const response = await fetch('/submit-incident', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            // Show success message with incident ID
+            alert(`Incident submitted successfully! Incident ID: ${result.incident_id}`);
+            // Reload the page
+            window.location.reload();
+        } else {
+            // Show error message
+            const errorMessage = result.error || 'Failed to submit incident. Please try again.';
+            alert(errorMessage);
+        }
+    } catch (error) {
+        console.error('Error submitting incident:', error);
+        alert('An error occurred while submitting the incident. Please try again.');
+    } finally {
+        // Re-enable button and restore original text
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+    }
+});
+</script>
+
 </body>
 </html>
+

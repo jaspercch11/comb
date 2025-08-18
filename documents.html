@@ -187,11 +187,47 @@
         document.getElementById('viewStatus').textContent = doc.approval_status;
         document.getElementById('viewApprovedDate').textContent = formatDate(doc.document_approved);
         document.getElementById('viewLastValidated').textContent = formatDate(doc.last_review);
-        document.getElementById('approveBtn').onclick = async () => {
-          await approveDocument(id);
-          await sendApprovalNotification(doc);
-        };
-        document.getElementById('reviseBtn').onclick = () => sendRevisionNotification(doc);
+        
+        // Get the approve and revise buttons
+        const approveBtn = document.getElementById('approveBtn');
+        const reviseBtn = document.getElementById('reviseBtn');
+        
+        // Check if document is already approved
+        const isApproved = doc.approval_status === 'Approved';
+        
+        if (isApproved) {
+          // Disable buttons if document is approved
+          approveBtn.disabled = true;
+          approveBtn.style.opacity = '0.5';
+          approveBtn.style.cursor = 'not-allowed';
+          approveBtn.title = 'Document is already approved';
+          
+          reviseBtn.disabled = true;
+          reviseBtn.style.opacity = '0.5';
+          reviseBtn.style.cursor = 'not-allowed';
+          reviseBtn.title = 'Document is already approved';
+        } else {
+          // Enable buttons if document is not approved
+          approveBtn.disabled = false;
+          approveBtn.style.opacity = '1';
+          approveBtn.style.cursor = 'pointer';
+          approveBtn.title = '';
+          
+          reviseBtn.disabled = false;
+          reviseBtn.style.opacity = '1';
+          reviseBtn.style.cursor = 'pointer';
+          reviseBtn.title = '';
+          
+          // Set up click handlers only if not approved
+          approveBtn.onclick = async () => {
+            await approveDocument(id);
+            await sendApprovalNotification(doc);
+            // Close the modal after approval
+            document.getElementById('viewModal').style.display = 'none';
+          };
+          reviseBtn.onclick = () => sendRevisionNotification(doc);
+        }
+        
         document.getElementById('viewModal').style.display = 'flex';
       } catch (err) {
         console.error(err);
@@ -421,6 +457,7 @@
   </script>
 </body>
 </html>
+
 
 
 

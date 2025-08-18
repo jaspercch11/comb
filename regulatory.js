@@ -620,6 +620,39 @@
               </ul>
             </div>
             ` : ''}
+            ${regulation.regulation_id == 5 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #6f42c1;">
+              <h4 style="margin-top: 0; color: #6f42c1;">Overview:</h4>
+              <p>The General Data Protection Regulation (GDPR) is an EU law that came into effect on May 25, 2018. It sets strict rules on how organizations collect, process, store, and protect personal data of individuals in the European Union (EU) and the European Economic Area (EEA). GDPR also applies to non-EU businesses that handle data of EU residents. Its aim is to give individuals greater control over their personal data and unify data protection laws across Europe.</p>
+              
+              <h4 style="color: #6f42c1;">Key Requirements:</h4>
+              <ul style="margin-bottom: 0;">
+                <li><strong>Lawful Basis for Processing:</strong> Organizations must have a valid legal reason to collect and process personal data (e.g., consent, contract, legal obligation).</li>
+                <li><strong>Data Subject Rights:</strong> Individuals have rights to access, correct, delete, and restrict processing of their personal data.</li>
+                <li><strong>Consent Management:</strong> Consent must be freely given, specific, informed, and unambiguous.</li>
+                <li><strong>Data Breach Notification:</strong> Organizations must report certain data breaches to the supervisory authority within 72 hours.</li>
+                <li><strong>Data Protection by Design & Default:</strong> Privacy and security must be built into systems and processes from the start.</li>
+                <li><strong>Appointment of Data Protection Officer (DPO):</strong> Required for certain organizations that process large-scale sensitive or personal data.</li>
+                <li><strong>Penalties:</strong> Fines can reach up to €20 million or 4% of annual global turnover, whichever is higher.</li>
+              </ul>
+            </div>
+            ` : ''}
+            ${regulation.regulation_id == 6 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #fd7e14;">
+              <h4 style="margin-top: 0; color: #fd7e14;">Overview:</h4>
+              <p>The FDA regulates cosmetics, food, drugs, and other health products to ensure they are safe, effective, and properly labeled. In the Philippines, the FDA enforces the ASEAN Cosmetic Directive for cosmetics.</p>
+              
+              <h4 style="color: #fd7e14;">Key Requirements:</h4>
+              <ul style="margin-bottom: 0;">
+                <li><strong>License to Operate (LTO):</strong> Required for manufacturing, importing, or distributing.</li>
+                <li><strong>Product Notification:</strong> Submit cosmetic details before sale.</li>
+                <li><strong>GMP Compliance:</strong> Follow Good Manufacturing Practices.</li>
+                <li><strong>Labeling Rules:</strong> Must meet FDA and ASEAN standards.</li>
+                <li><strong>Ingredient Restrictions:</strong> Follow banned/restricted lists.</li>
+                <li><strong>Market Surveillance:</strong> Allow inspections and respond to product safety alerts.</li>
+              </ul>
+            </div>
+            ` : ''}
           </div>
         <div class="modal-actions">
           <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">Close</button>

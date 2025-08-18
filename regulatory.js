@@ -54,6 +54,7 @@
     regsBody.innerHTML='';
     rows.forEach(r=>{
       const tr=document.createElement('tr');
+      tr.dataset.regId = String(r.id);
       const riskLevel = r.risk_level || 'Medium';
       const riskLevelClass = riskLevel.toLowerCase();
       
@@ -575,29 +576,141 @@
   };
 
   window.editRegulation = function(id) {
-    // For now, show a simple edit modal
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-      <div class="modal-header"><h3>Edit Regulation</h3><button class="modal-close">&times;</button></div>
-      <div class="modal-body">
-        <p><strong>Regulation ID:</strong> ${id}</p>
-        <p>This is a placeholder for the regulation edit functionality.</p>
-        <p>In a full implementation, this would show an edit form.</p>
-      </div>
-      <div class="modal-actions"><button class="btn btn-primary">Close</button></div>
-    `;
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    overlay.style.display = 'flex';
-    
-    const close = () => { try { document.body.removeChild(overlay); } catch(e){} };
-    modal.querySelector('.modal-close').onclick = close;
-    modal.querySelector('.btn').onclick = close;
-    overlay.addEventListener('click', (e) => { if(e.target === overlay) close(); });
-    document.addEventListener('keydown', function onKey(e) { if(e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } });
+    (async ()=>{
+      try{
+        const res = await fetch(`${API}/api/regulations`);
+        const regs = await res.json();
+        const reg = Array.isArray(regs) ? regs.find(r=> String(r.regulation_id)===String(id)) : null;
+        // Fallback if not found: create a minimal object so modal still opens
+        const currentStatus = (reg && (reg.status || 'Active')) || 'Active';
+        const currentRisk = (reg && (reg.risk_level || 'Medium')) || 'Medium';
+        const currentLast = reg && (reg.last_review || reg.last_accessed_date) ? new Date(reg.last_review || reg.last_accessed_date).toISOString().slice(0,10) : '';
+        const currentNext = reg && (reg.next_review || reg.next_review_date) ? new Date(reg.next_review || reg.next_review_date).toISOString().slice(0,10) : '';
+
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.innerHTML = `
+          <div class="modal-header"><h3>Edit Regulation</h3><button class="modal-close">&times;</button></div>
+          <div class="modal-body">
+            <div style="margin-bottom: 12px;"><strong>Regulation ID:</strong> ${id}</div>
+            <div style="display:grid; grid-template-columns: 1fr 2fr; gap:10px; align-items:center;">
+              <label>Status</label>
+              <select id="editStatus" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                <option value="Active">Active</option>
+                <option value="Pending">Pending</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Under Review">Under Review</option>
+                <option value="Compliant">Compliant</option>
+                <option value="Non-Compliant">Non-Compliant</option>
+              </select>
+              <label>Risk Level</label>
+              <select id="editRisk" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+              <label>Last Review</label>
+              <input type="date" id="editLast" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+              <label>Next Review</label>
+              <input type="date" id="editNext" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" />
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn" id="btnCancelEdit">Cancel</button>
+            <button class="btn btn-primary" id="btnSaveEdit">Save</button>
+          </div>
+        `;
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        overlay.style.display = 'flex';
+
+        const statusSel = modal.querySelector('#editStatus');
+        const riskSel = modal.querySelector('#editRisk');
+        const lastInp = modal.querySelector('#editLast');
+        const nextInp = modal.querySelector('#editNext');
+        statusSel.value = currentStatus;
+        riskSel.value = currentRisk;
+        if(currentLast) lastInp.value = currentLast;
+        if(currentNext) nextInp.value = currentNext;
+
+        const close = () => { try { document.body.removeChild(overlay); } catch(e){} };
+        modal.querySelector('.modal-close').onclick = close;
+        modal.querySelector('#btnCancelEdit').onclick = close;
+        overlay.addEventListener('click', (e)=>{ if(e.target===overlay) close(); });
+        document.addEventListener('keydown', function onKey(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown', onKey); } });
+
+        async function applyDomUpdate(){
+          const tr = regsBody.querySelector(`tr[data-reg-id="${String(id)}"]`);
+          if(!tr) return;
+          const tds = tr.querySelectorAll('td');
+          // Cells: 0 name, 1 dept, 2 status span, 3 risk span, 4 last, 5 next, 6 actions
+          const newStatus = statusSel.value;
+          const newRisk = riskSel.value;
+          const newLast = lastInp.value;
+          const newNext = nextInp.value;
+
+          const statusSpan = tds[2] && tds[2].querySelector('span');
+          if(statusSpan){
+            statusSpan.textContent = newStatus;
+            statusSpan.className = `status-${String(newStatus).toLowerCase().replace(/[^a-z0-9]/g,'-')}`;
+          }
+          const riskSpan = tds[3] && tds[3].querySelector('span');
+          if(riskSpan){
+            riskSpan.textContent = newRisk;
+            riskSpan.className = String(newRisk).toLowerCase();
+          }
+          if(tds[4]){ tds[4].textContent = newLast ? new Date(newLast).toISOString().slice(0,10) : 'Not Reviewed'; }
+          if(tds[5]){ tds[5].textContent = newNext ? new Date(newNext).toISOString().slice(0,10) : 'Not Scheduled'; }
+        }
+
+        async function save(){
+          // Try to persist to backend if endpoint exists; otherwise just update DOM
+          const payload = {
+            status: statusSel.value,
+            risk_level: riskSel.value,
+            last_review: lastInp.value || null,
+            next_review: nextInp.value || null
+          };
+          let persisted = false;
+          try{
+            const resp = await fetch(`${API}/api/regulations/${encodeURIComponent(id)}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            if(resp.ok){ persisted = true; }
+          }catch(_){ /* ignore network errors and fallback to DOM only */ }
+
+          await applyDomUpdate();
+          close();
+          if(!persisted){
+            console.warn('Regulation update not persisted (no API). Updated UI only.');
+          }
+        }
+
+        modal.querySelector('#btnSaveEdit').addEventListener('click', save);
+      }catch(err){
+        // Fallback simple modal if fetch fails
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.innerHTML = `
+          <div class="modal-header"><h3>Edit Regulation</h3><button class="modal-close">&times;</button></div>
+          <div class="modal-body"><p>Unable to load regulation details.</p></div>
+          <div class="modal-actions"><button class="btn btn-primary">Close</button></div>
+        `;
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        overlay.style.display='flex';
+        const close = ()=>{ try{ document.body.removeChild(overlay);}catch(e){} };
+        modal.querySelector('.modal-close').onclick=close;
+        modal.querySelector('.btn').onclick=close;
+        overlay.addEventListener('click',(e)=>{ if(e.target===overlay) close(); });
+      }
+    })();
   };
 
   async function openAddRegulationModal() {

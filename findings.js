@@ -290,7 +290,27 @@
 			const container = document.createElement('div');
 
 			const titleRow = formRow('Risk Title', 'text', '');
-			const deptRow = formRow('Assign To (Dept/Owner)', 'text', '');
+			const deptRow = (() => {
+				const row = document.createElement('div');
+				row.className = 'form-row';
+				const label = document.createElement('label');
+				label.textContent = 'Assign To (Dept/Owner)';
+				const select = document.createElement('select');
+				select.innerHTML = `
+					<option value="">Select Department</option>
+					<option>Human Resources</option>
+					<option>Project Management</option>
+					<option>Sales & CRM</option>
+					<option>Manufacturing & Production Mgmt.</option>
+					<option>Inventory & Warehouse Mgmt.</option>
+					<option>Procurement</option>
+					<option>Finance and Accounting</option>
+					<option>B.I. and Analytics</option>
+					<option>Compliance & Risk Management</option>`;
+				row.appendChild(label);
+				row.appendChild(select);
+				return { row, input: select };
+			})();
 			const dateRow = formRow('Due Date', 'date', new Date().toISOString().slice(0, 10));
 
 			const tasksHeader = document.createElement('div');

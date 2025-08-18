@@ -914,12 +914,19 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          // Provide multiple possible names for compatibility with server-side dynamic mapping
           title: name,
+          name: name,
+          regulation_name: name,
           department: departments.join(', '),
+          dept: departments.join(', '),
+          dept_responsible: departments.join(', '),
           status,
           risk_level: riskLevel,
           last_review: lastReview || null,
-          next_review: nextReview || null
+          last_accessed_date: lastReview || null,
+          next_review: nextReview || null,
+          next_review_date: nextReview || null
         })
       });
       if (!resp.ok) throw new Error('Failed to save regulation');

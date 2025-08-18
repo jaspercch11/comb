@@ -345,13 +345,17 @@ app.get("/audit-status-summary", async (req, res) => {
 app.post("/audits", async (req, res) => {
   const { audit_id, audit_name, dept_audited, auditor, audit_date, status } = req.body;
   try {
-    const insertQuery = `
-      INSERT INTO audits (audit_id, audit_name, dept_audited, auditor, audit_date, status)
-      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
-    `;
-    const result = await pool.query(insertQuery, [
-      audit_id, audit_name, dept_audited, auditor, audit_date, status,
-    ]);
+    // If audit_id not provided, let DB assign it (assumes audits.audit_id is serial/identity)
+    const hasId = audit_id !== undefined && audit_id !== null && String(audit_id).trim() !== '';
+    const insertQuery = hasId
+      ? `INSERT INTO audits (audit_id, audit_name, dept_audited, auditor, audit_date, status)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`
+      : `INSERT INTO audits (audit_name, dept_audited, auditor, audit_date, status)
+         VALUES ($1, $2, $3, $4, $5) RETURNING *`;
+    const params = hasId
+      ? [audit_id, audit_name, dept_audited, auditor, audit_date, status]
+      : [audit_name, dept_audited, auditor, audit_date, status];
+    const result = await pool.query(insertQuery, params);
     const actor = (req.body.actor || 'User').toString();
     try {
       const row = result.rows[0];

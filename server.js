@@ -878,20 +878,9 @@ app.post('/api/notifications', async (req, res) => {
     if (String(dept || '').trim() === 'Inventory & Warehouse Mgmt.') {
       try {
         await auditsDb.query(
-          `INSERT INTO notifications (title, message, type, dept, sender_dept, sender_user, priority, action_required, action_url, metadata)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-          [
-            title,
-            message,
-            type || 'info',
-            dept,
-            sender_dept || null,
-            sender_user || null,
-            priority || 'normal',
-            Boolean(action_required) === true,
-            action_url || null,
-            metadata ? JSON.stringify(metadata) : null
-          ]
+          `INSERT INTO notifications (title, message, type, created_at, is_read)
+           VALUES ($1, $2, NULL, NOW(), FALSE)`,
+          [title, message]
         );
       } catch (mirrorErr) {
         console.warn('Mirror to notifications table failed:', mirrorErr?.message || mirrorErr);

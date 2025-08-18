@@ -935,7 +935,18 @@
 						</div>
 						<div style="margin-bottom: 15px;">
 							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Department:</label>
-							<input type="text" id="addRiskDept" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+							<select id="addRiskDept" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+								<option value="">Select Department</option>
+								<option>Human Resources</option>
+								<option>Project Management</option>
+								<option>Sales & CRM</option>
+								<option>Manufacturing & Production Mgmt.</option>
+								<option>Inventory & Warehouse Mgmt.</option>
+								<option>Procurement</option>
+								<option>Finance and Accounting</option>
+								<option>B.I. and Analytics</option>
+								<option>Compliance & Risk Management</option>
+							</select>
 						</div>
 						<div style="margin-bottom: 15px;">
 							<label style="display: block; font-weight: 600; margin-bottom: 5px;">Category:</label>

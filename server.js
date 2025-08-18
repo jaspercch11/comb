@@ -875,7 +875,8 @@ app.post('/api/notifications', async (req, res) => {
     const notification = result.rows[0];
     
     // Additionally mirror to notifications table for specific department without changing existing behavior
-    if (String(dept || '').trim() === 'Inventory & Warehouse Mgmt.') {
+    const normalizeDept = (s)=> String(s||'').replace(/\s+/g,' ').trim();
+    if (normalizeDept(dept) === normalizeDept('Inventory & Warehouse Mgmt.')) {
       try {
         // Inspect notifications table to adapt to actual schema/nullability
         const colsRes = await auditsDb.query(`

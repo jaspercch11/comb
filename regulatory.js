@@ -572,6 +572,54 @@
               </ul>
             </div>
             ` : ''}
+            ${regulation.regulation_id == 2 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #28a745;">
+              <h4 style="margin-top: 0; color: #28a745;">Overview:</h4>
+              <p>Anti-Money Laundering (AML) refers to a set of laws, regulations, and processes designed to prevent criminals from disguising illegally obtained funds as legitimate income. In the Philippines, AML is governed by the Anti-Money Laundering Act of 2001 (RA 9160) and enforced by the Anti-Money Laundering Council (AMLC). Businesses in certain sectors are required to implement AML measures to detect and report suspicious transactions.</p>
+              
+              <h4 style="color: #28a745;">Key Requirements:</h4>
+              <ul style="margin-bottom: 0;">
+                <li><strong>Know Your Customer (KYC):</strong> Businesses must verify the identity of customers before establishing a business relationship.</li>
+                <li><strong>Customer Due Diligence (CDD):</strong> Risk assessment of customers, with enhanced checks for high-risk individuals and entities.</li>
+                <li><strong>Record Keeping:</strong> Maintain transaction and identification records for at least five years.</li>
+                <li><strong>Transaction Monitoring:</strong> Track and flag unusual or suspicious activity, including large cash transactions or unusual patterns.</li>
+                <li><strong>Suspicious Transaction Reporting (STR):</strong> Report suspicious activities to the AMLC within the prescribed time frame.</li>
+                <li><strong>Penalties for Non-Compliance:</strong> Significant fines, criminal charges, and possible business license revocation.</li>
+              </ul>
+            </div>
+            ` : ''}
+            ${regulation.regulation_id == 3 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #ffc107;">
+              <h4 style="margin-top: 0; color: #ffc107;">Overview:</h4>
+              <p>The BIR is the Philippine tax authority, ensuring businesses pay correct taxes and comply with tax reporting requirements.</p>
+              
+              <h4 style="color: #ffc107;">Key Requirements:</h4>
+              <ul style="margin-bottom: 0;">
+                <li><strong>Business Registration:</strong> Register business and secure a TIN.</li>
+                <li><strong>Bookkeeping:</strong> Maintain accurate books of accounts.</li>
+                <li><strong>Tax Filing:</strong> File and pay taxes on time (income, VAT, percentage tax, etc.).</li>
+                <li><strong>Withholding Taxes:</strong> Deduct and remit required withholding amounts.</li>
+                <li><strong>Record Retention:</strong> Keep tax records for at least 10 years.</li>
+                <li><strong>Penalties:</strong> Interest, surcharges, and possible criminal charges.</li>
+              </ul>
+            </div>
+            ` : ''}
+            ${regulation.regulation_id == 4 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #dc3545;">
+              <h4 style="margin-top: 0; color: #dc3545;">Overview:</h4>
+              <p>ISO 27001 is an international standard for managing information security. It helps organizations protect data from breaches, unauthorized access, and other risks.</p>
+              
+              <h4 style="color: #dc3545;">Key Requirements:</h4>
+              <ul style="margin-bottom: 0;">
+                <li><strong>Information Security Policy:</strong> Establish and maintain a security framework.</li>
+                <li><strong>Risk Assessment:</strong> Identify and manage information security risks.</li>
+                <li><strong>Access Control:</strong> Restrict data access to authorized users.</li>
+                <li><strong>Incident Response:</strong> Plan for detecting, reporting, and responding to incidents.</li>
+                <li><strong>Continuous Improvement:</strong> Review and improve security measures regularly.</li>
+                <li><strong>Certification:</strong> Achieved through independent audit by accredited bodies.</li>
+              </ul>
+            </div>
+            ` : ''}
           </div>
         <div class="modal-actions">
           <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">Close</button>

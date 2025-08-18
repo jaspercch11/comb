@@ -187,7 +187,10 @@
         document.getElementById('viewStatus').textContent = doc.approval_status;
         document.getElementById('viewApprovedDate').textContent = formatDate(doc.document_approved);
         document.getElementById('viewLastValidated').textContent = formatDate(doc.last_review);
-        document.getElementById('approveBtn').onclick = () => approveDocument(id);
+        document.getElementById('approveBtn').onclick = async () => {
+          await approveDocument(id);
+          await sendApprovalNotification(doc);
+        };
         document.getElementById('reviseBtn').onclick = () => sendRevisionNotification(doc);
         document.getElementById('viewModal').style.display = 'flex';
       } catch (err) {
@@ -262,6 +265,29 @@
         alert('Revision notification sent');
       } catch (e) {
         alert('Failed to send notification');
+        console.error(e);
+      }
+    }
+
+    async function sendApprovalNotification(doc) {
+      try {
+        const title = 'Document approval';
+        const message = `Your document ${doc.document_name} has been approved.`;
+        await fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            message,
+            type: 'document',
+            dept: doc.owner_dept,
+            sender_dept: 'Document Control',
+            action_required: false
+          })
+        });
+        alert('Approval notification sent');
+      } catch (e) {
+        alert('Failed to send approval notification');
         console.error(e);
       }
     }

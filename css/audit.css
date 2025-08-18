@@ -214,23 +214,23 @@
       font-weight: bold;
       font-size: 18px;
       position: relative;
-      box-shadow: inset 0 0 0 4px transparent;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2), inset 0 0 0 4px transparent;
     }
 
     .metric-box.blue {
-      box-shadow: inset 0 0 0 4px #2f63f2;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2), inset 0 0 0 4px #2f63f2;
     }
 
     .metric-box.green {
-      box-shadow: inset 0 0 0 4px #fdd835;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2), inset 0 0 0 4px #fdd835;
     }
 
     .metric-box.yellow {
-      box-shadow: inset 0 0 0 4px #33c458;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2), inset 0 0 0 4px #33c458;
     }
 
     .metric-box.red {
-      box-shadow: inset 0 0 0 4px #ef5350;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2), inset 0 0 0 4px #ef5350;
     }
 
     .metric-icon {

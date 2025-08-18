@@ -874,6 +874,30 @@ app.post('/api/notifications', async (req, res) => {
 
     const notification = result.rows[0];
     
+    // Additionally mirror to notifications table for specific department without changing existing behavior
+    if (String(dept || '').trim() === 'Inventory & Warehouse Mgmt.') {
+      try {
+        await auditsDb.query(
+          `INSERT INTO notifications (title, message, type, dept, sender_dept, sender_user, priority, action_required, action_url, metadata)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          [
+            title,
+            message,
+            type || 'info',
+            dept,
+            sender_dept || null,
+            sender_user || null,
+            priority || 'normal',
+            Boolean(action_required) === true,
+            action_url || null,
+            metadata ? JSON.stringify(metadata) : null
+          ]
+        );
+      } catch (mirrorErr) {
+        console.warn('Mirror to notifications table failed:', mirrorErr?.message || mirrorErr);
+      }
+    }
+
     // Log the activity
     await logActivity(`Notification sent to ${dept || 'all departments'}: ${title}`, sender_dept);
     

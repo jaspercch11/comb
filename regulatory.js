@@ -18,7 +18,7 @@
       const lastReview = r.last_review || r.last_accessed_date || null;
       const dept = r.department || r.dept_responsible || r.dept || '';
       const name = r.name || r.regulation_name || r.title || '—';
-      const riskLevel = r.risk_level || 'Medium';
+      const riskLevel = r.risk_level || null;
       
       // Use database status if available (support multiple possible column names), otherwise calculate based on review dates
       let status = r.status || r.status_regulations || r.regulations_status || r.status_regulation;
@@ -55,8 +55,8 @@
     rows.forEach(r=>{
       const tr=document.createElement('tr');
       tr.dataset.regId = String(r.id);
-      const riskLevel = r.risk_level || 'Medium';
-      const riskLevelClass = riskLevel.toLowerCase();
+      const riskLevel = r.risk_level || 'Not Set';
+      const riskLevelClass = riskLevel && riskLevel !== 'Not Set' ? riskLevel.toLowerCase() : 'medium';
       
       // Create status class for styling
       const statusClass = `status-${r.status.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
@@ -554,7 +554,7 @@
             <p><strong>Name:</strong> ${regulation.title || regulation.name}</p>
             <p><strong>Department:</strong> ${regulation.department || regulation.dept_responsible || regulation.dept || 'Not Assigned'}</p>
             <p><strong>Status:</strong> <span class="status-${(regulation.status || 'Active').toLowerCase().replace(/[^a-z0-9]/g, '-')}">${regulation.status || 'Active'}</span></p>
-            <p><strong>Risk Level:</strong> ${regulation.risk_level || 'Medium'}</p>
+            <p><strong>Risk Level:</strong> ${regulation.risk_level || 'Not Set'}</p>
             <p><strong>Last Review:</strong> ${regulation.last_review ? new Date(regulation.last_review).toISOString().slice(0,10) : 'Not Reviewed'}</p>
             <p><strong>Next Review:</strong> ${regulation.next_review ? new Date(regulation.next_review).toISOString().slice(0,10) : 'Not Scheduled'}</p>
             <p><strong>Description:</strong> ${regulation.description || 'No description available'}</p>
@@ -728,14 +728,14 @@
             const tds = tr.querySelectorAll('td');
             reg = {
               status: tds[2] ? tds[2].textContent.trim() : 'Active',
-              risk_level: tds[3] ? tds[3].textContent.trim() : 'Medium',
+              risk_level: tds[3] ? tds[3].textContent.trim() : null,
               last_review: tds[4] && tds[4].textContent.includes('-') ? tds[4].textContent.trim() : null,
               next_review: tds[5] && tds[5].textContent.includes('-') ? tds[5].textContent.trim() : null
             };
           }
         }
         const currentStatus = (reg && (reg.status || 'Active')) || 'Active';
-        const currentRisk = (reg && (reg.risk_level || 'Medium')) || 'Medium';
+        const currentRisk = (reg && reg.risk_level) || 'Medium';
         const currentLast = reg && (reg.last_review || reg.last_accessed_date) ? new Date(reg.last_review || reg.last_accessed_date).toISOString().slice(0,10) : '';
         const currentNext = reg && (reg.next_review || reg.next_review_date) ? new Date(reg.next_review || reg.next_review_date).toISOString().slice(0,10) : '';
 

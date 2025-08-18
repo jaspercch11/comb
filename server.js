@@ -102,9 +102,10 @@ const auditsDb = pool;
     try {
       await pool.query(`ALTER TABLE regulations ADD COLUMN IF NOT EXISTS overview TEXT`);
       await pool.query(`ALTER TABLE regulations ADD COLUMN IF NOT EXISTS requirements TEXT`);
+      await pool.query(`ALTER TABLE regulations ADD COLUMN IF NOT EXISTS risk_level TEXT`);
     } catch (e) {
       // Columns might already exist, ignore error
-      console.log('Overview/requirements columns check:', e?.message || 'OK');
+      console.log('Overview/requirements/risk_level columns check:', e?.message || 'OK');
     }
     
     // Create notifications table

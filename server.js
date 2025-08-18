@@ -284,6 +284,24 @@ app.put('/validate/:id', async (req, res) => {
   }
 });
 
+// Revise document (reset to Pending and clear approved date)
+app.put('/revise/:id', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      UPDATE policy_documents
+      SET approval_status = 'Pending',
+          document_approved = NULL
+      WHERE document_id = $1
+      RETURNING approval_status, document_approved, last_review
+    `, [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Revise error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // =================== LOGIN ROUTE ===================
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;

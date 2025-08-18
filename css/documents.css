@@ -411,3 +411,15 @@
 }
 
 
+/* Revise button styling (disabled but red) */
+#reviseBtn {
+    background: #dc3545;
+    color: #fff;
+}
+#reviseBtn:hover {
+    background: #c82333;
+}
+#reviseBtn:disabled {
+    cursor: not-allowed;
+    opacity: 0.95;
+}

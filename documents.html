@@ -155,7 +155,7 @@
       <p><strong>Last Validated:</strong> <span id="viewLastValidated"></span></p>
       <div class="modal-buttons">
         <button id="approveBtn" class="upload-btn">Approve</button>
-        <button id="reviseBtn" class="cancel-btn" disabled>Revise</button>
+        <button id="reviseBtn" class="cancel-btn">Revise</button>
         <button type="button" class="cancel-btn" onclick="closeViewModal()">Close</button>
       </div>
     </div>
@@ -188,6 +188,7 @@
         document.getElementById('viewApprovedDate').textContent = formatDate(doc.document_approved);
         document.getElementById('viewLastValidated').textContent = formatDate(doc.last_review);
         document.getElementById('approveBtn').onclick = () => approveDocument(id);
+        document.getElementById('reviseBtn').onclick = () => sendRevisionNotification(doc);
         document.getElementById('viewModal').style.display = 'flex';
       } catch (err) {
         console.error(err);
@@ -240,6 +241,29 @@
         const deptMatch = !activeFilters.owner_dept || doc.owner_dept === activeFilters.owner_dept;
         return statusMatch && deptMatch;
       });
+    }
+
+    async function sendRevisionNotification(doc) {
+      try {
+        const title = `Action needed: revision for ${doc.document_name}`;
+        const message = `Your document (${doc.document_name}) needs a revision, Please review and revise your document`;
+        await fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            message,
+            type: 'document',
+            dept: doc.owner_dept,
+            sender_dept: 'Document Control',
+            action_required: true
+          })
+        });
+        alert('Revision notification sent');
+      } catch (e) {
+        alert('Failed to send notification');
+        console.error(e);
+      }
     }
 
     function renderDocuments() {

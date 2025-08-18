@@ -186,10 +186,6 @@ async function loadActivities(){
   }catch(err){ /* no-op */ }
 }
 
-
-
-
-
 function openActivityModal(activity){
   const overlay = document.createElement('div');
   overlay.className = 'modal';

@@ -1201,14 +1201,6 @@
 			if (!filterBtn) {
 				console.error('❌ Filter button not found');
 			}
-
-			// Wire up actions now that elements are available
-			if (newBtn) {
-				newBtn.addEventListener('click', openNewModal);
-			}
-			if (filterBtn) {
-				filterBtn.addEventListener('click', openFilterModal);
-			}
 		}
 
 		// Initialize heatmap on page load

@@ -877,11 +877,28 @@ app.post('/api/notifications', async (req, res) => {
     // Additionally mirror to notifications table for specific department without changing existing behavior
     if (String(dept || '').trim() === 'Inventory & Warehouse Mgmt.') {
       try {
-        await auditsDb.query(
-          `INSERT INTO notifications (title, message, type, created_at, is_read)
-           VALUES ($1, $2, NULL, NOW(), FALSE)`,
-          [title, message]
-        );
+        // Inspect notifications table to adapt to actual schema/nullability
+        const colsRes = await auditsDb.query(`
+          SELECT column_name, is_nullable
+          FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'notifications'
+        `);
+        const cols = new Map(colsRes.rows.map(r => [String(r.column_name), String(r.is_nullable).toUpperCase()]));
+        const hasType = cols.has('type');
+        const typeNullable = hasType ? cols.get('type') === 'YES' : true;
+        const hasCreatedAt = cols.has('created_at');
+        const hasIsRead = cols.has('is_read');
+
+        const fields = ['title', 'message'];
+        const params = ['$1', '$2'];
+        const values = [title, message];
+        let idx = 3;
+        if (hasType) { fields.push('type'); params.push(`$${idx++}`); values.push(typeNullable ? null : 'info'); }
+        if (hasCreatedAt) { fields.push('created_at'); params.push('NOW()'); }
+        if (hasIsRead) { fields.push('is_read'); params.push('FALSE'); }
+
+        const sql = `INSERT INTO notifications (${fields.join(', ')}) VALUES (${params.join(', ')})`;
+        await auditsDb.query(sql, values);
       } catch (mirrorErr) {
         console.warn('Mirror to notifications table failed:', mirrorErr?.message || mirrorErr);
       }

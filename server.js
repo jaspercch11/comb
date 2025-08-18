@@ -908,11 +908,30 @@ app.post('/api/notifications', async (req, res) => {
     // Mirror to Finance and Accounting custom table
     if (normalizeDept(dept) === normalizeDept('Finance and Accounting')) {
       try {
-        await auditsDb.query(
-          `INSERT INTO fa_notifications (date, text, type, ref, read)
-           VALUES (NOW(), $1, 'audit', NULL, FALSE)`,
-          [message]
-        );
+        const generateId = () => {
+          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+          let out = '';
+          for (let i = 0; i < 8; i++) out += chars[Math.floor(Math.random() * chars.length)];
+          return out;
+        };
+        let success = false;
+        let lastErr = null;
+        for (let attempt = 0; attempt < 5 && !success; attempt++) {
+          const rid = generateId();
+          try {
+            await auditsDb.query(
+              `INSERT INTO fa_notifications (id, date, text, type, ref, read)
+               VALUES ($1, NOW(), $2, 'audit', NULL, FALSE)`,
+              [rid, message]
+            );
+            success = true;
+          } catch (e) {
+            lastErr = e;
+            // 23505 => unique_violation, try again with different id
+            if (!(e && e.code === '23505')) throw e;
+          }
+        }
+        if (!success && lastErr) throw lastErr;
       } catch (mirrorErr) {
         console.warn('Mirror to fa_notifications failed:', mirrorErr?.message || mirrorErr);
       }

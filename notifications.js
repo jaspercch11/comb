@@ -388,16 +388,16 @@ app.post("/submit-incident", upload.single("evidence"), async (req, res) => {
   const { incidentType, severity, date, department, description } = req.body;
   const evidenceFile = req.file ? req.file.filename : null;
   try {
-    await pool.query(
+    const result = await pool.query(
       `INSERT INTO incidents 
       (incident_type, severity_level, date_reported, department, description, evidence, status) 
-      VALUES ($1, $2, $3, $4, $5, $6, 'open')`,
+      VALUES ($1, $2, $3, $4, $5, $6, 'open') RETURNING incident_id`,
       [incidentType, severity, date, department, description, evidenceFile]
     );
-    res.redirect("/incident.html");
+    res.json({ success: true, incident_id: result.rows[0].incident_id });
   } catch (error) {
     console.error("Insert incident error:", error);
-    res.status(500).send("Database insert failed");
+    res.status(500).json({ error: "Database insert failed" });
   }
 });
 

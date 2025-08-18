@@ -20,8 +20,8 @@
       const name = r.name || r.regulation_name || r.title || '—';
       const riskLevel = r.risk_level || 'Medium';
       
-      // Use database status if available, otherwise calculate based on review dates
-      let status = r.status;
+      // Use database status if available (support multiple possible column names), otherwise calculate based on review dates
+      let status = r.status || r.status_regulations || r.regulations_status || r.status_regulation;
       if (!status){
         const daysUntil = nextReview ? Math.floor((new Date(nextReview).getTime() - nowMs) / (1000*60*60*24)) : null;
         status = daysUntil !== null && daysUntil < 0 ? 'non-compliant' : 'compliant';

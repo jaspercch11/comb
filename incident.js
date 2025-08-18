@@ -380,7 +380,21 @@
     }
 
     // Set up send to risk button
-    document.getElementById('sendToRiskBtn').onclick = () => sendToRisk(incident);
+    const sendToRiskBtn = document.getElementById('sendToRiskBtn');
+    if (incident.risk_id) {
+      // Already sent to risk register
+      sendToRiskBtn.textContent = 'Already Sent to Risk';
+      sendToRiskBtn.disabled = true;
+      sendToRiskBtn.style.opacity = '0.6';
+      sendToRiskBtn.style.cursor = 'not-allowed';
+    } else {
+      // Not sent yet, enable the button
+      sendToRiskBtn.textContent = 'Send to Risk';
+      sendToRiskBtn.disabled = false;
+      sendToRiskBtn.style.opacity = '1';
+      sendToRiskBtn.style.cursor = 'pointer';
+      sendToRiskBtn.onclick = () => sendToRisk(incident);
+    }
     
     modal.style.display = 'flex';
   }

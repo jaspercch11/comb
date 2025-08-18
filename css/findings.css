@@ -677,16 +677,21 @@
 
   .form-row input[type="text"],
   .form-row input[type="date"],
-  .form-row input[type="number"] {
+  .form-row input[type="number"],
+  .form-row select {
     padding: 10px 12px;
     border: 1px solid #d1d5db;
     border-radius: 8px;
     background: #fff;
     font-size: 14px;
     outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
   }
 
-  .form-row input:focus {
+  .form-row input:focus,
+  .form-row select:focus {
     border-color: #6a93ff;
     box-shadow: 0 0 0 3px rgba(106, 147, 255, 0.25);
   }

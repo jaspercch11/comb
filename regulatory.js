@@ -552,12 +552,138 @@
           <div class="modal-body">
             <p><strong>Regulation ID:</strong> ${regulation.regulation_id}</p>
             <p><strong>Name:</strong> ${regulation.title || regulation.name}</p>
-            <p><strong>Department:</strong> ${regulation.department || 'Not Assigned'}</p>
+            <p><strong>Department:</strong> ${regulation.department || regulation.dept_responsible || regulation.dept || 'Not Assigned'}</p>
             <p><strong>Status:</strong> <span class="status-${(regulation.status || 'Active').toLowerCase().replace(/[^a-z0-9]/g, '-')}">${regulation.status || 'Active'}</span></p>
             <p><strong>Risk Level:</strong> ${regulation.risk_level || 'Medium'}</p>
             <p><strong>Last Review:</strong> ${regulation.last_review ? new Date(regulation.last_review).toISOString().slice(0,10) : 'Not Reviewed'}</p>
             <p><strong>Next Review:</strong> ${regulation.next_review ? new Date(regulation.next_review).toISOString().slice(0,10) : 'Not Scheduled'}</p>
             <p><strong>Description:</strong> ${regulation.description || 'No description available'}</p>
+            ${regulation.regulation_id == 1 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
+              <h4 style="margin-top: 0; color: #007bff;">Overview:</h4>
+              <p>The Sarbanes-Oxley Act (SOX) is a U.S. federal law enacted in 2002 to protect investors from fraudulent financial reporting by corporations. It mandates strict reforms to improve financial disclosures and prevent accounting fraud.</p>
+              
+              <h4 style="color: #007bff;">Key Requirements:</h4>
+              <ul style="margin-bottom: 0;">
+                <li><strong>Section 302:</strong> Corporate Responsibility for Financial Reports - Executives must personally certify the accuracy of financial statements.</li>
+                <li><strong>Section 404:</strong> Management Assessment of Internal Controls - Companies must establish, maintain, and assess internal controls for financial reporting.</li>
+                <li><strong>Audit Trails:</strong> Organizations must retain all records and maintain audit trails for key financial processes.</li>
+                <li><strong>Whistleblower Protection:</strong> Protects employees who report fraudulent activities.</li>
+              </ul>
+            </div>
+            ` : ''}
+            ${regulation.regulation_id == 2 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #28a745;">
+              <h4 style="margin-top: 0; color: #28a745;">Overview:</h4>
+              <p>Anti-Money Laundering (AML) refers to a set of laws, regulations, and processes designed to prevent criminals from disguising illegally obtained funds as legitimate income. In the Philippines, AML is governed by the Anti-Money Laundering Act of 2001 (RA 9160) and enforced by the Anti-Money Laundering Council (AMLC). Businesses in certain sectors are required to implement AML measures to detect and report suspicious transactions.</p>
+              
+              <h4 style="color: #28a745;">Key Requirements:</h4>
+              <ul style="margin-bottom: 0;">
+                <li><strong>Know Your Customer (KYC):</strong> Businesses must verify the identity of customers before establishing a business relationship.</li>
+                <li><strong>Customer Due Diligence (CDD):</strong> Risk assessment of customers, with enhanced checks for high-risk individuals and entities.</li>
+                <li><strong>Record Keeping:</strong> Maintain transaction and identification records for at least five years.</li>
+                <li><strong>Transaction Monitoring:</strong> Track and flag unusual or suspicious activity, including large cash transactions or unusual patterns.</li>
+                <li><strong>Suspicious Transaction Reporting (STR):</strong> Report suspicious activities to the AMLC within the prescribed time frame.</li>
+                <li><strong>Penalties for Non-Compliance:</strong> Significant fines, criminal charges, and possible business license revocation.</li>
+              </ul>
+            </div>
+            ` : ''}
+            ${regulation.regulation_id == 3 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #ffc107;">
+              <h4 style="margin-top: 0; color: #ffc107;">Overview:</h4>
+              <p>The BIR is the Philippine tax authority, ensuring businesses pay correct taxes and comply with tax reporting requirements.</p>
+              
+              <h4 style="color: #ffc107;">Key Requirements:</h4>
+              <ul style="margin-bottom: 0;">
+                <li><strong>Business Registration:</strong> Register business and secure a TIN.</li>
+                <li><strong>Bookkeeping:</strong> Maintain accurate books of accounts.</li>
+                <li><strong>Tax Filing:</strong> File and pay taxes on time (income, VAT, percentage tax, etc.).</li>
+                <li><strong>Withholding Taxes:</strong> Deduct and remit required withholding amounts.</li>
+                <li><strong>Record Retention:</strong> Keep tax records for at least 10 years.</li>
+                <li><strong>Penalties:</strong> Interest, surcharges, and possible criminal charges.</li>
+              </ul>
+            </div>
+            ` : ''}
+            ${regulation.regulation_id == 4 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #dc3545;">
+              <h4 style="margin-top: 0; color: #dc3545;">Overview:</h4>
+              <p>ISO 27001 is an international standard for managing information security. It helps organizations protect data from breaches, unauthorized access, and other risks.</p>
+              
+              <h4 style="color: #dc3545;">Key Requirements:</h4>
+              <ul style="margin-bottom: 0;">
+                <li><strong>Information Security Policy:</strong> Establish and maintain a security framework.</li>
+                <li><strong>Risk Assessment:</strong> Identify and manage information security risks.</li>
+                <li><strong>Access Control:</strong> Restrict data access to authorized users.</li>
+                <li><strong>Incident Response:</strong> Plan for detecting, reporting, and responding to incidents.</li>
+                <li><strong>Continuous Improvement:</strong> Review and improve security measures regularly.</li>
+                <li><strong>Certification:</strong> Achieved through independent audit by accredited bodies.</li>
+              </ul>
+            </div>
+            ` : ''}
+            ${regulation.regulation_id == 5 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #6f42c1;">
+              <h4 style="margin-top: 0; color: #6f42c1;">Overview:</h4>
+              <p>The General Data Protection Regulation (GDPR) is an EU law that came into effect on May 25, 2018. It sets strict rules on how organizations collect, process, store, and protect personal data of individuals in the European Union (EU) and the European Economic Area (EEA). GDPR also applies to non-EU businesses that handle data of EU residents. Its aim is to give individuals greater control over their personal data and unify data protection laws across Europe.</p>
+              
+              <h4 style="color: #6f42c1;">Key Requirements:</h4>
+              <ul style="margin-bottom: 0;">
+                <li><strong>Lawful Basis for Processing:</strong> Organizations must have a valid legal reason to collect and process personal data (e.g., consent, contract, legal obligation).</li>
+                <li><strong>Data Subject Rights:</strong> Individuals have rights to access, correct, delete, and restrict processing of their personal data.</li>
+                <li><strong>Consent Management:</strong> Consent must be freely given, specific, informed, and unambiguous.</li>
+                <li><strong>Data Breach Notification:</strong> Organizations must report certain data breaches to the supervisory authority within 72 hours.</li>
+                <li><strong>Data Protection by Design & Default:</strong> Privacy and security must be built into systems and processes from the start.</li>
+                <li><strong>Appointment of Data Protection Officer (DPO):</strong> Required for certain organizations that process large-scale sensitive or personal data.</li>
+                <li><strong>Penalties:</strong> Fines can reach up to €20 million or 4% of annual global turnover, whichever is higher.</li>
+              </ul>
+            </div>
+            ` : ''}
+            ${regulation.regulation_id == 6 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #fd7e14;">
+              <h4 style="margin-top: 0; color: #fd7e14;">Overview:</h4>
+              <p>The FDA regulates cosmetics, food, drugs, and other health products to ensure they are safe, effective, and properly labeled. In the Philippines, the FDA enforces the ASEAN Cosmetic Directive for cosmetics.</p>
+              
+              <h4 style="color: #fd7e14;">Key Requirements:</h4>
+              <ul style="margin-bottom: 0;">
+                <li><strong>License to Operate (LTO):</strong> Required for manufacturing, importing, or distributing.</li>
+                <li><strong>Product Notification:</strong> Submit cosmetic details before sale.</li>
+                <li><strong>GMP Compliance:</strong> Follow Good Manufacturing Practices.</li>
+                <li><strong>Labeling Rules:</strong> Must meet FDA and ASEAN standards.</li>
+                <li><strong>Ingredient Restrictions:</strong> Follow banned/restricted lists.</li>
+                <li><strong>Market Surveillance:</strong> Allow inspections and respond to product safety alerts.</li>
+              </ul>
+            </div>
+            ` : ''}
+            ${regulation.regulation_id == 7 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #20c997;">
+              <h4 style="margin-top: 0; color: #20c997;">Overview:</h4>
+              <p>Republic Act No. 8792 promotes the use of electronic transactions, contracts, and documents, giving them the same legal effect as physical ones.</p>
+              
+              <h4 style="color: #20c997;">Key Requirements:</h4>
+              <ul style="margin-bottom: 0;">
+                <li><strong>Legal Recognition:</strong> E-documents and signatures are legally valid.</li>
+                <li><strong>Security Measures:</strong> Ensure confidentiality, integrity, and authenticity of transactions.</li>
+                <li><strong>Fraud Prevention:</strong> Implement measures against cybercrime.</li>
+                <li><strong>Consumer Protection:</strong> Follow truth-in-advertising and fair trade practices online.</li>
+                <li><strong>Penalties:</strong> Imprisonment and fines for cyber fraud or unauthorized access.</li>
+              </ul>
+            </div>
+            ` : ''}
+            ${regulation.regulation_id == 8 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #e83e8c;">
+              <h4 style="margin-top: 0; color: #e83e8c;">Overview:</h4>
+              <p>Republic Act No. 10173 protects personal information in the Philippines. It governs how personal data is collected, stored, processed, and shared, ensuring individuals' right to privacy.</p>
+              
+              <h4 style="color: #e83e8c;">Key Requirements:</h4>
+              <ul style="margin-bottom: 0;">
+                <li><strong>Lawful Processing:</strong> Must have consent or legal basis.</li>
+                <li><strong>Data Subject Rights:</strong> Access, correction, blocking, and deletion of personal data.</li>
+                <li><strong>Data Protection Officer (DPO):</strong> Appoint a DPO to oversee compliance.</li>
+                <li><strong>Security Measures:</strong> Implement organizational, physical, and technical safeguards.</li>
+                <li><strong>Breach Notification:</strong> Report breaches to the NPC within 72 hours.</li>
+                <li><strong>Penalties:</strong> Fines and imprisonment for violations.</li>
+              </ul>
+            </div>
+            ` : ''}
           </div>
         <div class="modal-actions">
           <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">Close</button>

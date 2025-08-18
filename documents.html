@@ -119,15 +119,15 @@
         <input type="text" name="document_name" placeholder="Document title" required />
         <select name="owner_dept" required>
           <option value="" disabled selected>Select Department</option>
-          <option>HR</option>
+          <option>Human Resources</option>
           <option>Project Management</option>
           <option>Sales & CRM</option>
           <option>Manufacturing & Production Mgmt.</option>
           <option>Inventory & Warehouse Mgmt.</option>
           <option>Procurement</option>
           <option>Finance and Accounting</option>
-          <option>Compliance & Risk Mgmt.</option>
           <option>B.I. and Analytics</option>
+          <option>Compliance & Risk Management</option>
         </select>
         <label>
           <span>Choose File (PDF, DOCX, JPG)</span><br />
@@ -155,6 +155,7 @@
       <p><strong>Last Validated:</strong> <span id="viewLastValidated"></span></p>
       <div class="modal-buttons">
         <button id="approveBtn" class="upload-btn">Approve</button>
+        <button id="reviseBtn" class="cancel-btn">Revise</button>
         <button type="button" class="cancel-btn" onclick="closeViewModal()">Close</button>
       </div>
     </div>
@@ -186,7 +187,11 @@
         document.getElementById('viewStatus').textContent = doc.approval_status;
         document.getElementById('viewApprovedDate').textContent = formatDate(doc.document_approved);
         document.getElementById('viewLastValidated').textContent = formatDate(doc.last_review);
-        document.getElementById('approveBtn').onclick = () => approveDocument(id);
+        document.getElementById('approveBtn').onclick = async () => {
+          await approveDocument(id);
+          await sendApprovalNotification(doc);
+        };
+        document.getElementById('reviseBtn').onclick = () => sendRevisionNotification(doc);
         document.getElementById('viewModal').style.display = 'flex';
       } catch (err) {
         console.error(err);
@@ -206,6 +211,8 @@
         console.error(err);
       }
     }
+
+    
 
     async function closeViewModal() {
       if (currentViewedDocId) {
@@ -237,6 +244,52 @@
         const deptMatch = !activeFilters.owner_dept || doc.owner_dept === activeFilters.owner_dept;
         return statusMatch && deptMatch;
       });
+    }
+
+    async function sendRevisionNotification(doc) {
+      try {
+        const title = `Action needed: revision for ${doc.document_name}`;
+        const message = `Your document (${doc.document_name}) needs a revision, Please review and revise your document`;
+        await fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            message,
+            type: 'document',
+            dept: doc.owner_dept,
+            sender_dept: 'Document Control',
+            action_required: true
+          })
+        });
+        alert('Revision notification sent');
+      } catch (e) {
+        alert('Failed to send notification');
+        console.error(e);
+      }
+    }
+
+    async function sendApprovalNotification(doc) {
+      try {
+        const title = 'Document approval';
+        const message = `Your document ${doc.document_name} has been approved.`;
+        await fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            message,
+            type: 'document',
+            dept: doc.owner_dept,
+            sender_dept: 'Document Control',
+            action_required: false
+          })
+        });
+        alert('Approval notification sent');
+      } catch (e) {
+        alert('Failed to send approval notification');
+        console.error(e);
+      }
     }
 
     function renderDocuments() {

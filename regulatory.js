@@ -909,35 +909,29 @@
     }
     
     try {
-      // Create a new row in the table immediately (client-side add)
-      const newId = Date.now();
-      const tr = document.createElement('tr');
-      tr.dataset.regId = String(newId);
-      const statusClass = `status-${String(status).toLowerCase().replace(/[^a-z0-9]/g,'-')}`;
-      const riskClass = String(riskLevel).toLowerCase();
-      const lastDisp = lastReview ? new Date(lastReview).toISOString().slice(0,10) : 'Not Reviewed';
-      const nextDisp = nextReview ? new Date(nextReview).toISOString().slice(0,10) : 'Not Scheduled';
-      tr.innerHTML = `
-        <td>${name}</td>
-        <td>${departments.join(', ')}</td>
-        <td><span class="${statusClass}">${status}</span></td>
-        <td><span class="${riskClass}">${riskLevel}</span></td>
-        <td>${lastDisp}</td>
-        <td>${nextDisp}</td>
-        <td>
-          <div class="action-buttons">
-            <button class="btn-view" onclick="viewRegulation(${JSON.stringify(String(newId))})">View</button>
-            <button class="btn-edit" onclick="editRegulation(${JSON.stringify(String(newId))})">Edit</button>
-          </div>
-        </td>
-      `;
-      regsBody.appendChild(tr);
+      // Persist to backend
+      const resp = await fetch(`${API}/api/regulations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: name,
+          department: departments.join(', '),
+          status,
+          risk_level: riskLevel,
+          last_review: lastReview || null,
+          next_review: nextReview || null
+        })
+      });
+      if (!resp.ok) throw new Error('Failed to save regulation');
+      const created = await resp.json();
+
+      // Refresh from server to ensure consistency
+      const regs = await fetchRegs();
+      renderRegs(regs);
+      renderTopCards(regs);
 
       // Close modal
       closeAddRegulationModal();
-
-      // Update top cards from current DOM
-      recomputeTopCardsFromDom();
     } catch (error) {
       alert('Error adding regulation: ' + error.message);
     }

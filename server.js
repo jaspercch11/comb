@@ -87,6 +87,17 @@ const auditsDb = pool;
       updated_at TIMESTAMPTZ DEFAULT now()
     )`);
     
+    // Create regulations table if missing
+    await pool.query(`CREATE TABLE IF NOT EXISTS regulations (
+      regulation_id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      department TEXT,
+      status TEXT,
+      risk_level TEXT,
+      last_review DATE,
+      next_review DATE
+    )`);
+    
     // Create notifications table
     await pool.query(`CREATE TABLE IF NOT EXISTS notifications (
       id SERIAL PRIMARY KEY,
@@ -506,6 +517,48 @@ app.get('/api/regulations', async (req, res) => {
   } catch (e) {
     console.error('Error fetching regulations', e);
     res.status(500).json({ error: 'Failed to fetch regulations' });
+  }
+});
+
+app.post('/api/regulations', async (req, res) => {
+  try {
+    const { title, department, status, risk_level, last_review, next_review } = req.body;
+    if (!title) return res.status(400).json({ error: 'title is required' });
+    const out = await auditsDb.query(
+      `INSERT INTO regulations (title, department, status, risk_level, last_review, next_review)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING regulation_id, title, department, status, risk_level, last_review, next_review`,
+      [title, department || null, status || null, risk_level || null, last_review || null, next_review || null]
+    );
+    res.status(201).json(out.rows[0]);
+  } catch (e) {
+    console.error('Error creating regulation', e);
+    res.status(500).json({ error: 'Failed to create regulation' });
+  }
+});
+
+app.put('/api/regulations/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { title, department, status, risk_level, last_review, next_review } = req.body;
+    const fields = [];
+    const values = [];
+    let idx = 1;
+    if (title !== undefined) { fields.push(`title = $${idx++}`); values.push(title); }
+    if (department !== undefined) { fields.push(`department = $${idx++}`); values.push(department); }
+    if (status !== undefined) { fields.push(`status = $${idx++}`); values.push(status); }
+    if (risk_level !== undefined) { fields.push(`risk_level = $${idx++}`); values.push(risk_level); }
+    if (last_review !== undefined) { fields.push(`last_review = $${idx++}`); values.push(last_review || null); }
+    if (next_review !== undefined) { fields.push(`next_review = $${idx++}`); values.push(next_review || null); }
+    if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
+    values.push(id);
+    const sql = `UPDATE regulations SET ${fields.join(', ')} WHERE regulation_id = $${idx} RETURNING regulation_id, title, department, status, risk_level, last_review, next_review`;
+    const out = await auditsDb.query(sql, values);
+    if (!out.rowCount) return res.status(404).json({ error: 'Not found' });
+    res.json(out.rows[0]);
+  } catch (e) {
+    console.error('Error updating regulation', e);
+    res.status(500).json({ error: 'Failed to update regulation' });
   }
 });
 

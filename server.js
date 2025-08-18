@@ -30,6 +30,34 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+// ===== Login DB Connection =====
+const poolLogin = new Pool({
+  connectionString: 'postgresql://neondb_owner:npg_Oa2PvqXF1ZHs@ep-square-bonus-a1go72ll-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require',
+  ssl: { rejectUnauthorized: false }
+});
+
+// ===== Login Route =====
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const result = await poolLogin.query(
+      'SELECT * FROM users WHERE username = $1 AND password = $2',
+      [username, password]
+    );
+
+    if (result.rows.length > 0) {
+      res.json({ success: true, message: '✅ Login successful!' });
+    } else {
+      res.json({ success: false, message: '❌ Invalid username or password.' });
+    }
+  } catch (err) {
+    console.error('Login error:', err.message);
+    res.status(500).json({ success: false, message: '⚠️ Server error.', error: err.message });
+  }
+});
+
+
 const auditsDb = pool;
 
 // Ensure optional schema for filtering UI-created risks

@@ -552,7 +552,7 @@
           <div class="modal-body">
             <p><strong>Regulation ID:</strong> ${regulation.regulation_id}</p>
             <p><strong>Name:</strong> ${regulation.title || regulation.name}</p>
-            <p><strong>Department:</strong> ${regulation.department || 'Not Assigned'}</p>
+            <p><strong>Department:</strong> ${regulation.department || regulation.dept_responsible || regulation.dept || 'Not Assigned'}</p>
             <p><strong>Status:</strong> <span class="status-${(regulation.status || 'Active').toLowerCase().replace(/[^a-z0-9]/g, '-')}">${regulation.status || 'Active'}</span></p>
             <p><strong>Risk Level:</strong> ${regulation.risk_level || 'Medium'}</p>
             <p><strong>Last Review:</strong> ${regulation.last_review ? new Date(regulation.last_review).toISOString().slice(0,10) : 'Not Reviewed'}</p>

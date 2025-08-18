@@ -653,6 +653,37 @@
               </ul>
             </div>
             ` : ''}
+            ${regulation.regulation_id == 7 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #20c997;">
+              <h4 style="margin-top: 0; color: #20c997;">Overview:</h4>
+              <p>Republic Act No. 8792 promotes the use of electronic transactions, contracts, and documents, giving them the same legal effect as physical ones.</p>
+              
+              <h4 style="color: #20c997;">Key Requirements:</h4>
+              <ul style="margin-bottom: 0;">
+                <li><strong>Legal Recognition:</strong> E-documents and signatures are legally valid.</li>
+                <li><strong>Security Measures:</strong> Ensure confidentiality, integrity, and authenticity of transactions.</li>
+                <li><strong>Fraud Prevention:</strong> Implement measures against cybercrime.</li>
+                <li><strong>Consumer Protection:</strong> Follow truth-in-advertising and fair trade practices online.</li>
+                <li><strong>Penalties:</strong> Imprisonment and fines for cyber fraud or unauthorized access.</li>
+              </ul>
+            </div>
+            ` : ''}
+            ${regulation.regulation_id == 8 ? `
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #e83e8c;">
+              <h4 style="margin-top: 0; color: #e83e8c;">Overview:</h4>
+              <p>Republic Act No. 10173 protects personal information in the Philippines. It governs how personal data is collected, stored, processed, and shared, ensuring individuals' right to privacy.</p>
+              
+              <h4 style="color: #e83e8c;">Key Requirements:</h4>
+              <ul style="margin-bottom: 0;">
+                <li><strong>Lawful Processing:</strong> Must have consent or legal basis.</li>
+                <li><strong>Data Subject Rights:</strong> Access, correction, blocking, and deletion of personal data.</li>
+                <li><strong>Data Protection Officer (DPO):</strong> Appoint a DPO to oversee compliance.</li>
+                <li><strong>Security Measures:</strong> Implement organizational, physical, and technical safeguards.</li>
+                <li><strong>Breach Notification:</strong> Report breaches to the NPC within 72 hours.</li>
+                <li><strong>Penalties:</strong> Fines and imprisonment for violations.</li>
+              </ul>
+            </div>
+            ` : ''}
           </div>
         <div class="modal-actions">
           <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove()">Close</button>

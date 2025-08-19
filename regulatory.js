@@ -1124,7 +1124,7 @@
       
       const resp = await fetch(`${API}/api/regulations`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-create-regulation': 'true' },
         body: JSON.stringify(requestBody)
       });
       

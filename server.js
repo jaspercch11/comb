@@ -582,6 +582,12 @@ app.get('/api/regulations', async (req, res) => {
 
 app.post('/api/regulations', async (req, res) => {
   try {
+    // Block unintended creations unless explicitly authorized by client
+    const allowed = String(req.get('x-create-regulation') || '').toLowerCase() === 'true';
+    if (!allowed) {
+      return res.status(403).json({ error: 'Regulation creation not allowed from this source' });
+    }
+
     const payload = req.body || {};
     
     // Add comprehensive logging for regulation creation

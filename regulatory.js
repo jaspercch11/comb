@@ -15,18 +15,15 @@
     const rows = await res.json();
 
     // Also fetch documents to filter out any regulation-like entries originating from documents
-    // that are not yet approved. We match by document_name against regulation title/name.
-    let unapprovedDocNames = new Set();
+    // regardless of status. We match by document_name against regulation title/name.
+    let allDocNames = new Set();
     try {
       const docsResp = await fetch(`${API}/documents`);
       if (docsResp.ok) {
         const docs = await docsResp.json();
         (Array.isArray(docs) ? docs : []).forEach(d => {
-          const status = String(d.approval_status || '').toLowerCase();
-          if (status !== 'approved') {
-            const name = (d.document_name || '').trim();
-            if (name) unapprovedDocNames.add(name);
-          }
+          const name = (d.document_name || '').trim();
+          if (name) allDocNames.add(name);
         });
       }
     } catch(_) { /* ignore document filtering if endpoint unavailable */ }
@@ -57,9 +54,9 @@
     };
     const regs = Array.isArray(rows) ? rows.map(normalize) : [];
 
-    // Filter out any entries whose name matches an unapproved document's name
-    // This ensures documents do not appear in Active Regulations unless approved
-    return regs.filter(r => !unapprovedDocNames.has((r.name || '').trim()))
+    // Filter out any entries whose name matches ANY document's name
+    // This ensures documents do not appear in Active Regulations at all
+    return regs.filter(r => !allDocNames.has((r.name || '').trim()))
   }
   }
   async function fetchIncStatus(){

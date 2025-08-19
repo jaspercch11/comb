@@ -9,9 +9,27 @@
   let deptChoices = [];
 
   async function fetchRegs(){
-    const res=await fetch(`${API}/api/regulations`);
+    // Fetch regulations
+    const res = await fetch(`${API}/api/regulations`);
     if(!res.ok) return [];
     const rows = await res.json();
+
+    // Also fetch documents to filter out any regulation-like entries originating from documents
+    // that are not yet approved. We match by document_name against regulation title/name.
+    let unapprovedDocNames = new Set();
+    try {
+      const docsResp = await fetch(`${API}/documents`);
+      if (docsResp.ok) {
+        const docs = await docsResp.json();
+        (Array.isArray(docs) ? docs : []).forEach(d => {
+          const status = String(d.approval_status || '').toLowerCase();
+          if (status !== 'approved') {
+            const name = (d.document_name || '').trim();
+            if (name) unapprovedDocNames.add(name);
+          }
+        });
+      }
+    } catch(_) { /* ignore document filtering if endpoint unavailable */ }
     const nowMs = Date.now();
     const normalize = (r)=>{
       const nextReview = r.next_review || r.next_review_date || null;
@@ -37,7 +55,12 @@
         next_review: nextReview 
       };
     };
-    return Array.isArray(rows) ? rows.map(normalize) : [];
+    const regs = Array.isArray(rows) ? rows.map(normalize) : [];
+
+    // Filter out any entries whose name matches an unapproved document's name
+    // This ensures documents do not appear in Active Regulations unless approved
+    return regs.filter(r => !unapprovedDocNames.has((r.name || '').trim()))
+  }
   }
   async function fetchIncStatus(){
     const res=await fetch(`${API}/api/dashboard/compliance-status`);

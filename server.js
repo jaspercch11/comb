@@ -195,6 +195,21 @@ const upload = multer({
 app.post('/upload', upload.single('file'), async (req, res) => {
   const { document_name, owner_dept } = req.body;
   const file = req.file;
+  
+  // Add comprehensive logging for document upload
+  console.log('=== DOCUMENT UPLOAD LOG ===');
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('Document name:', document_name);
+  console.log('Owner department:', owner_dept);
+  console.log('File name:', file ? file.originalname : 'No file');
+  console.log('File size:', file ? file.size : 'No file');
+  console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+  console.log('Request URL:', req.url);
+  console.log('Request method:', req.method);
+  console.log('User agent:', req.get('User-Agent'));
+  console.log('Referer:', req.get('Referer'));
+  console.log('================================');
+  
   try {
     const result = await pool.query(
       `INSERT INTO policy_documents
@@ -203,9 +218,16 @@ app.post('/upload', upload.single('file'), async (req, res) => {
        RETURNING document_id`,
       [document_name, owner_dept, file ? fs.readFileSync(file.path) : null, file ? file.originalname : null]
     );
+    
+    console.log('Document uploaded successfully with ID:', result.rows[0].document_id);
+    console.log('=== END DOCUMENT UPLOAD LOG ===');
+    
     res.status(201).json({ document_id: result.rows[0].document_id });
   } catch (err) {
+    console.error('=== DOCUMENT UPLOAD ERROR ===');
     console.error('Upload error:', err);
+    console.error('Error stack:', err.stack);
+    console.error('=== END DOCUMENT UPLOAD ERROR ===');
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -498,15 +520,39 @@ app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
   try {
     const { owner_dept, approval_status, last_review, document_approved } = req.body;
     const file = req.file;
+    
+    // Add comprehensive logging for API document upload
+    console.log('=== API DOCUMENT UPLOAD LOG ===');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Owner department:', owner_dept);
+    console.log('Approval status:', approval_status);
+    console.log('Last review:', last_review);
+    console.log('Document approved:', document_approved);
+    console.log('File name:', file ? file.originalname : 'No file');
+    console.log('File size:', file ? file.size : 'No file');
+    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+    console.log('Request URL:', req.url);
+    console.log('Request method:', req.method);
+    console.log('User agent:', req.get('User-Agent'));
+    console.log('Referer:', req.get('Referer'));
+    console.log('================================');
+    
     const out = await auditsDb.query(
       `INSERT INTO policy_documents (owner_dept, approval_status, last_review, document_approved, file_name, file_data)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING document_id`,
       [owner_dept, approval_status, last_review || null, String(document_approved) === 'true', file?.originalname || null, file?.buffer || null]
     );
+    
+    console.log('API Document uploaded successfully with ID:', out.rows[0].document_id);
+    console.log('=== END API DOCUMENT UPLOAD LOG ===');
+    
     logAudit(`Document uploaded: ${file?.originalname || ''}`, owner_dept, approval_status);
     res.json({ success: true, document_id: out.rows[0].document_id });
   } catch (e) {
+    console.error('=== API DOCUMENT UPLOAD ERROR ===');
     console.error('Upload failed', e);
+    console.error('Error stack:', e.stack);
+    console.error('=== END API DOCUMENT UPLOAD ERROR ===');
     res.status(500).json({ error: 'Upload failed' });
   }
 });
@@ -536,7 +582,25 @@ app.get('/api/regulations', async (req, res) => {
 
 app.post('/api/regulations', async (req, res) => {
   try {
+    // Block unintended creations unless explicitly authorized by client
+    const allowed = String(req.get('x-create-regulation') || '').toLowerCase() === 'true';
+    if (!allowed) {
+      return res.status(403).json({ error: 'Regulation creation not allowed from this source' });
+    }
+
     const payload = req.body || {};
+    
+    // Add comprehensive logging for regulation creation
+    console.log('=== REGULATION CREATION LOG ===');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Request payload:', JSON.stringify(payload, null, 2));
+    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+    console.log('Request URL:', req.url);
+    console.log('Request method:', req.method);
+    console.log('User agent:', req.get('User-Agent'));
+    console.log('Referer:', req.get('Referer'));
+    console.log('================================');
+    
     // Discover existing columns for regulations table
     const colsRes = await auditsDb.query(`
       SELECT column_name
@@ -557,6 +621,7 @@ app.post('/api/regulations', async (req, res) => {
     const requirementsCol = mapFirst(['requirements']);
 
     if (!nameCol) {
+      console.log('ERROR: No suitable name/title column exists in regulations table');
       return res.status(400).json({ error: 'No suitable name/title column exists in regulations table' });
     }
 
@@ -574,10 +639,20 @@ app.post('/api/regulations', async (req, res) => {
     addIf(requirementsCol, payload.requirements || null);
 
     const sql = `INSERT INTO regulations (${columns.join(', ')}) VALUES (${params.join(', ')}) RETURNING *`;
+    console.log('SQL Query:', sql);
+    console.log('SQL Values:', values);
+    
     const out = await auditsDb.query(sql, values);
+    console.log('Regulation created successfully with ID:', out.rows[0].regulation_id);
+    console.log('Created regulation data:', JSON.stringify(out.rows[0], null, 2));
+    console.log('=== END REGULATION CREATION LOG ===');
+    
     res.status(201).json(out.rows[0]);
   } catch (e) {
-    console.error('Error creating regulation', e);
+    console.error('=== REGULATION CREATION ERROR ===');
+    console.error('Error creating regulation:', e);
+    console.error('Error stack:', e.stack);
+    console.error('=== END REGULATION CREATION ERROR ===');
     res.status(500).json({ error: 'Failed to create regulation' });
   }
 });

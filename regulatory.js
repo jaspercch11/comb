@@ -478,7 +478,25 @@
     // Add event listener for Add New Regulation button
     const addRegulationBtn = document.getElementById('addRegulationBtn');
     if (addRegulationBtn) {
-      addRegulationBtn.addEventListener('click', openAddRegulationModal);
+      console.log('=== ADD REGULATION BUTTON EVENT LISTENER SETUP ===');
+      console.log('Timestamp:', new Date().toISOString());
+      console.log('Button found:', !!addRegulationBtn);
+      console.log('Button text:', addRegulationBtn.textContent);
+      console.log('Button HTML:', addRegulationBtn.outerHTML);
+      console.log('================================');
+      
+      addRegulationBtn.addEventListener('click', (e) => {
+        console.log('=== ADD REGULATION BUTTON CLICKED ===');
+        console.log('Timestamp:', new Date().toISOString());
+        console.log('Event type:', e.type);
+        console.log('Event target:', e.target);
+        console.log('Event currentTarget:', e.currentTarget);
+        console.log('Stack trace:', new Error().stack);
+        console.log('================================');
+        openAddRegulationModal();
+      });
+    } else {
+      console.log('WARNING: Add Regulation button not found');
     }
   }
 
@@ -869,6 +887,14 @@
   };
 
   async function openAddRegulationModal() {
+    // Add logging for modal opening
+    console.log('=== ADD REGULATION MODAL OPENED ===');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Current URL:', window.location.href);
+    console.log('User agent:', navigator.userAgent);
+    console.log('Stack trace:', new Error().stack);
+    console.log('================================');
+    
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     const modal = document.createElement('div');
@@ -1053,36 +1079,66 @@
     const overview = document.getElementById('regOverview').value;
     const requirements = document.getElementById('regRequirements').value;
     
+    // Add comprehensive logging for frontend regulation creation
+    console.log('=== FRONTEND REGULATION CREATION LOG ===');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Regulation name:', name);
+    console.log('Departments:', departments);
+    console.log('Status:', status);
+    console.log('Risk level:', riskLevel);
+    console.log('Last review:', lastReview);
+    console.log('Next review:', nextReview);
+    console.log('Overview:', overview);
+    console.log('Requirements:', requirements);
+    console.log('Current URL:', window.location.href);
+    console.log('User agent:', navigator.userAgent);
+    console.log('================================');
+    
     if (!name || !departments.length || !nextReview) {
+      console.log('ERROR: Missing required fields for regulation creation');
       alert('Please fill in all required fields');
       return;
     }
     
     try {
       // Persist to backend
+      const requestBody = {
+        // Provide multiple possible names for compatibility with server-side dynamic mapping
+        title: name,
+        name: name,
+        regulation_name: name,
+        department: departments.join(', '),
+        dept: departments.join(', '),
+        dept_responsible: departments.join(', '),
+        status,
+        risk_level: riskLevel,
+        last_review: lastReview || null,
+        last_accessed_date: lastReview || null,
+        next_review: nextReview || null,
+        next_review_date: nextReview || null,
+        overview: overview || null,
+        requirements: requirements || null
+      };
+      
+      console.log('Sending regulation creation request with payload:', JSON.stringify(requestBody, null, 2));
+      
       const resp = await fetch(`${API}/api/regulations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          // Provide multiple possible names for compatibility with server-side dynamic mapping
-          title: name,
-          name: name,
-          regulation_name: name,
-          department: departments.join(', '),
-          dept: departments.join(', '),
-          dept_responsible: departments.join(', '),
-          status,
-          risk_level: riskLevel,
-          last_review: lastReview || null,
-          last_accessed_date: lastReview || null,
-          next_review: nextReview || null,
-          next_review_date: nextReview || null,
-          overview: overview || null,
-          requirements: requirements || null
-        })
+        body: JSON.stringify(requestBody)
       });
-      if (!resp.ok) throw new Error('Failed to save regulation');
+      
+      console.log('Regulation creation response status:', resp.status);
+      console.log('Regulation creation response headers:', Object.fromEntries(resp.headers.entries()));
+      
+      if (!resp.ok) {
+        const errorText = await resp.text();
+        console.error('Regulation creation failed with response:', errorText);
+        throw new Error('Failed to save regulation');
+      }
+      
       const created = await resp.json();
+      console.log('Regulation created successfully:', JSON.stringify(created, null, 2));
 
       // Refresh from server to ensure consistency
       const regs = await fetchRegs();
@@ -1091,7 +1147,12 @@
 
       // Close modal
       closeAddRegulationModal();
+      console.log('=== END FRONTEND REGULATION CREATION LOG ===');
     } catch (error) {
+      console.error('=== FRONTEND REGULATION CREATION ERROR ===');
+      console.error('Error adding regulation:', error);
+      console.error('Error stack:', error.stack);
+      console.error('=== END FRONTEND REGULATION CREATION ERROR ===');
       alert('Error adding regulation: ' + error.message);
     }
   }

@@ -58,7 +58,6 @@
     // This ensures documents do not appear in Active Regulations at all
     return regs.filter(r => !allDocNames.has((r.name || '').trim()))
   }
-  }
   async function fetchIncStatus(){
     const res=await fetch(`${API}/api/dashboard/compliance-status`);
     if(!res.ok) return {compliant:0, non_compliant:0};
